@@ -1,0 +1,160 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Get a free hosted Postgres database in seconds: `npx create-db`
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Gender {
+  MEN
+  WOMEN
+  UNISEX
+}
+
+enum Size {
+  S
+  M
+  L
+  XL
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  SHIPPED
+  DELIVERED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  UPI
+  COD
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  phone     String?
+  createdAt DateTime @default(now())
+
+  addresses Address[]
+  orders    Order[]
+  reviews   Review[]
+  cartItems CartItem[]
+}
+
+model Address {
+  id        String  @id @default(uuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  fullName  String
+  phone     String
+  street    String
+  city      String
+  state     String
+  pinCode   String
+  isDefault Boolean @default(false)
+
+  orders Order[]
+}
+
+model Category {
+  id       String    @id @default(uuid())
+  name     String    @unique
+  products Product[]
+}
+
+model Product {
+  id          String   @id @default(uuid())
+  name        String
+  description String
+  material    String
+  care        String?
+  price       Float
+  discount    Float    @default(0)
+  gender      Gender
+  sizes       Size[]
+  colors      String[]
+  stock       Int      @default(0)
+  categoryId  String
+  category    Category @relation(fields: [categoryId], references: [id])
+  createdAt   DateTime @default(now())
+
+  images      String[]
+  reviews     Review[]
+  orderItems  OrderItem[]
+  cartItems   CartItem[]
+}
+
+model Review {
+  id        String   @id @default(uuid())
+  productId String
+  product   Product  @relation(fields: [productId], references: [id])
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  rating    Int
+  comment   String?
+  createdAt DateTime @default(now())
+}
+
+model CartItem {
+  id        String  @id @default(uuid())
+  userId    String
+  user      User    @relation(fields: [userId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  size      Size
+  color     String
+  quantity  Int     @default(1)
+
+  @@unique([userId, productId, size, color])
+}
+
+model PromoCode {
+  id             String   @id @default(uuid())
+  code           String   @unique
+  discountType   String   // "PERCENT" or "FLAT"
+  discountValue  Float
+  expiresAt      DateTime?
+  isActive       Boolean  @default(true)
+
+  orders Order[]
+}
+
+model Order {
+  id            String        @id @default(uuid())
+  userId        String
+  user          User          @relation(fields: [userId], references: [id])
+  addressId     String
+  address       Address       @relation(fields: [addressId], references: [id])
+  items         OrderItem[]
+  subtotal      Float
+  shipping      Float         @default(0)
+  discount      Float         @default(0)
+  total         Float
+  promoCodeId   String?
+  promoCode     PromoCode?    @relation(fields: [promoCodeId], references: [id])
+  paymentMethod PaymentMethod
+  status        OrderStatus   @default(PENDING)
+  createdAt     DateTime      @default(now())
+}
+
+model OrderItem {
+  id        String  @id @default(uuid())
+  orderId   String
+  order     Order   @relation(fields: [orderId], references: [id])
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  size      Size
+  color     String
+  quantity  Int
+  price     Float  
+}

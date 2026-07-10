@@ -1,7 +1,7 @@
 import Link from 'next/link'
 import { useState } from 'react'
 
-interface NavbarProps {
+type NavbarProps = {
   isLoggedIn: boolean
   cartCount?: number
   onLogout?: () => void
