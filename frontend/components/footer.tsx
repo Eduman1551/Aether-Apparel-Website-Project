@@ -3,7 +3,7 @@ import Link from 'next/link'
 export default function Footer() {
   return (
     <footer className="w-full bg-[#F5F5F5] border-t border-[#e5e5e5] mt-auto">
-      <div className="max-w-7xl mx-auto px-6 py-8 grid grid-cols-1 md:grid-cols-4 gap-6">
+      <div className="max-w-7xl mx-auto px-6 py-6 grid grid-cols-1 md:grid-cols-4 gap-6">
         {/* Brand */}
         <div className="md:col-span-1">
           <h3 className="text-lg font-semibold text-[#111111] tracking-wide">

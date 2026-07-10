@@ -2,9 +2,14 @@ import { useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 
-export default function LoginPage() {
+export default function RegisterPage() {
   const router = useRouter()
-  const [form, setForm] = useState({ email: '', password: '' })
+  const [form, setForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    phone: ''
+  })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
 
@@ -19,11 +24,11 @@ export default function LoginPage() {
 
     try {
       const res = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/auth/login`,
+        `${process.env.NEXT_PUBLIC_API_URL}/auth/register`,
         {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          credentials: 'include', 
+          credentials: 'include',
           body: JSON.stringify(form)
         }
       )
@@ -31,7 +36,7 @@ export default function LoginPage() {
       const data = await res.json()
 
       if (!res.ok) {
-        setError(data.message || 'Login failed')
+        setError(data.message || 'Registration failed')
         return
       }
 
@@ -44,16 +49,30 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="flex items-center justify-center bg-white px-6 mb-auto mt-20">
+    <div className="flex items-center justify-center bg-white px-6 mt-10 mb-10">
       <div className="w-full max-w-sm">
         <h1 className="text-2xl font-semibold text-[#111111] text-center mb-2">
-          Welcome Back
+          Create Account
         </h1>
         <p className="text-sm text-[#555] text-center mb-8">
-          Log in to your Aether Apparel account
+          Join Aether Apparel today
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="block text-sm text-[#111111] mb-1">
+              Full Name
+            </label>
+            <input
+              type="text"
+              name="name"
+              value={form.name}
+              onChange={handleChange}
+              required
+              className="w-full border border-[#e0e0e0] px-3 py-2 text-sm focus:outline-none focus:border-[#7A9E7E]"
+            />
+          </div>
+
           <div>
             <label className="block text-sm text-[#111111] mb-1">Email</label>
             <input
@@ -68,6 +87,19 @@ export default function LoginPage() {
 
           <div>
             <label className="block text-sm text-[#111111] mb-1">
+              Phone (optional)
+            </label>
+            <input
+              type="tel"
+              name="phone"
+              value={form.phone}
+              onChange={handleChange}
+              className="w-full border border-[#e0e0e0] px-3 py-2 text-sm focus:outline-none focus:border-[#7A9E7E]"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm text-[#111111] mb-1">
               Password
             </label>
             <input
@@ -76,6 +108,7 @@ export default function LoginPage() {
               value={form.password}
               onChange={handleChange}
               required
+              minLength={6}
               className="w-full border border-[#e0e0e0] px-3 py-2 text-sm focus:outline-none focus:border-[#7A9E7E]"
             />
           </div>
@@ -87,14 +120,14 @@ export default function LoginPage() {
             disabled={loading}
             className="w-full bg-[#111111] text-white py-2 text-sm font-medium hover:bg-[#7A9E7E] transition-colors disabled:opacity-50"
           >
-            {loading ? 'Logging in...' : 'Login'}
+            {loading ? 'Creating account...' : 'Register'}
           </button>
         </form>
 
         <p className="text-sm text-[#555] text-center mt-6">
-          Don&apos;t have an account?{' '}
-          <Link href="/register" className="text-[#7A9E7E] font-medium">
-            Register
+          Already have an account?{' '}
+          <Link href="/login" className="text-[#7A9E7E] font-medium">
+            Login
           </Link>
         </p>
       </div>
