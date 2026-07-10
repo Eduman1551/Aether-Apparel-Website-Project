@@ -17,6 +17,11 @@ enum Gender {
   UNISEX
 }
 
+enum Role {
+  USER
+  ADMIN
+}
+
 enum Size {
   S
   M
@@ -44,6 +49,7 @@ model User {
   password  String
   phone     String?
   createdAt DateTime @default(now())
+  role      Role     @default(USER)
 
   addresses Address[]
   orders    Order[]
@@ -88,10 +94,10 @@ model Product {
   category    Category @relation(fields: [categoryId], references: [id])
   createdAt   DateTime @default(now())
 
-  images      String[]
-  reviews     Review[]
-  orderItems  OrderItem[]
-  cartItems   CartItem[]
+  images     String[]
+  reviews    Review[]
+  orderItems OrderItem[]
+  cartItems  CartItem[]
 }
 
 model Review {
@@ -119,12 +125,12 @@ model CartItem {
 }
 
 model PromoCode {
-  id             String   @id @default(uuid())
-  code           String   @unique
-  discountType   String   // "PERCENT" or "FLAT"
-  discountValue  Float
-  expiresAt      DateTime?
-  isActive       Boolean  @default(true)
+  id            String    @id @default(uuid())
+  code          String    @unique
+  discountType  String // "PERCENT" or "FLAT"
+  discountValue Float
+  expiresAt     DateTime?
+  isActive      Boolean   @default(true)
 
   orders Order[]
 }
@@ -156,5 +162,5 @@ model OrderItem {
   size      Size
   color     String
   quantity  Int
-  price     Float  
+  price     Float
 }
