@@ -209,7 +209,7 @@ export default function ProductsPage() {
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10">
             {Array.from({ length: 8 }).map((_, i) => (
               <div key={i} className="border border-[#eeeeee] animate-pulse">
-                <div className="aspect-[4/5] bg-[#F0F0F0]" />
+                <div className="aspect-4/5 bg-[#F0F0F0]" />
                 <div className="p-3.5">
                   <div className="h-2.5 bg-[#F0F0F0] rounded-sm w-1/4 mb-3" />
                   <div className="h-3.5 bg-[#F0F0F0] rounded-sm w-3/4 mb-2.5" />
@@ -263,7 +263,7 @@ export default function ProductsPage() {
                   className="group block border border-[#eeeeee] hover:border-[#d8d8d8] hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all duration-300 bg-white"
                 >
                   {/* Image */}
-                  <div className="relative aspect-[4/5] bg-[#F5F5F5] overflow-hidden">
+                  <div className="relative aspect-4/5 bg-[#F5F5F5] overflow-hidden">
                     {product.images?.[0] && (
                       <>
                         <Image

@@ -209,7 +209,7 @@ export default function ProductDetailPage({ refreshCartCount }: ProductDetailPro
   return (
     <>
       {/* ── Toast Notifications ── */}
-      <div className="fixed top-20 right-5 z-[100] flex flex-col gap-2 pointer-events-none">
+      <div className="fixed top-20 right-5 z-100 flex flex-col gap-2 pointer-events-none">
         {toasts.map(toast => (
           <div
             key={toast.id}
