@@ -1,6 +1,6 @@
-import Image from 'next/image'
-import Link from 'next/link'
 import { useEffect, useState } from 'react'
+import Link from 'next/link'
+import Image from 'next/image'
 
 type Product = {
   id: string
@@ -36,7 +36,7 @@ export default function ProductsPage() {
 
       try {
         const res = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/products?${params.toString()}`
+          `${process.env.NEXT_PUBLIC_API_URL}/products?${params.toString()}`
         )
         const data = await res.json()
         setProducts(data.products || [])
@@ -55,131 +55,121 @@ export default function ProductsPage() {
   }
 
   return (
-    <div className="max-w-7xl mx-auto px-6 py-12">
-      <h1 className="text-2xl font-semibold text-[#111111] mb-8">Shop All</h1>
+    <div className="bg-white">
+      {/* Page Title */}
+      <div className="max-w-[1600px] mx-auto px-6 md:px-10 pt-10 pb-6">
+        <h1 className="text-2xl md:text-3xl font-semibold text-[#111111] tracking-wide">
+          Shop All
+        </h1>
+      </div>
 
-      <div className="flex flex-col md:flex-row gap-8">
-        {/* Filters Sidebar */}
-        <aside className="w-full md:w-56 shrink-0 space-y-6">
-          <div>
-            <label className="text-sm font-medium text-[#111111] block mb-2">
-              Gender
-            </label>
-            <select
-              value={filters.gender}
-              onChange={e => handleFilterChange('gender', e.target.value)}
-              className="w-full border border-[#e0e0e0] px-3 py-2 text-sm"
-            >
-              <option value="">All</option>
-              <option value="men">Men</option>
-              <option value="women">Women</option>
-              <option value="unisex">Unisex</option>
-            </select>
-          </div>
-
-          <div>
-            <label className="text-sm font-medium text-[#111111] block mb-2">
-              Price Range
-            </label>
-            <div className="flex gap-2">
-              <input
-                type="number"
-                placeholder="Min"
-                value={filters.minPrice}
-                onChange={e => handleFilterChange('minPrice', e.target.value)}
-                className="w-full border border-[#e0e0e0] px-2 py-2 text-sm"
-              />
-              <input
-                type="number"
-                placeholder="Max"
-                value={filters.maxPrice}
-                onChange={e => handleFilterChange('maxPrice', e.target.value)}
-                className="w-full border border-[#e0e0e0] px-2 py-2 text-sm"
-              />
-            </div>
-          </div>
+      {/* Horizontal Filter Bar */}
+      <div className="top-18.25 z-40 bg-white border-y border-[#e5e5e5]">
+        <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-4 flex flex-wrap items-center gap-4 md:gap-8">
+          <select
+            value={filters.gender}
+            onChange={e => handleFilterChange('gender', e.target.value)}
+            className="text-sm border border-[#e0e0e0] px-3 py-2 bg-white text-[#111111] focus:outline-none focus:border-[#7A9E7E]"
+          >
+            <option value="">Gender: All</option>
+            <option value="men">Men</option>
+            <option value="women">Women</option>
+            <option value="unisex">Unisex</option>
+          </select>
 
           <div className="flex items-center gap-2">
             <input
+              type="number"
+              placeholder="Min ₹"
+              value={filters.minPrice}
+              onChange={e => handleFilterChange('minPrice', e.target.value)}
+              className="w-20 text-sm border border-[#e0e0e0] px-2 py-2 focus:outline-none focus:border-[#7A9E7E]"
+            />
+            <span className="text-[#999] text-sm">–</span>
+            <input
+              type="number"
+              placeholder="Max ₹"
+              value={filters.maxPrice}
+              onChange={e => handleFilterChange('maxPrice', e.target.value)}
+              className="w-20 text-sm border border-[#e0e0e0] px-2 py-2 focus:outline-none focus:border-[#7A9E7E]"
+            />
+          </div>
+
+          <label className="flex items-center gap-2 text-sm text-[#111111] cursor-pointer">
+            <input
               type="checkbox"
-              id="inStock"
               checked={filters.inStock === 'true'}
               onChange={e =>
                 handleFilterChange('inStock', e.target.checked ? 'true' : '')
               }
             />
-            <label htmlFor="inStock" className="text-sm text-[#111111]">
-              In Stock Only
-            </label>
-          </div>
-        </aside>
+            In Stock Only
+          </label>
 
-        {/* Products Grid */}
-        <div className="flex-1">
-          <div className="flex justify-end mb-6">
-            <select
-              value={filters.sort}
-              onChange={e => handleFilterChange('sort', e.target.value)}
-              className="border border-[#e0e0e0] px-3 py-2 text-sm"
-            >
-              <option value="newest">Newest</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-              <option value="best_selling">Best Selling</option>
-            </select>
-          </div>
-
-          {loading ? (
-            <p className="text-sm text-[#555]">Loading products...</p>
-          ) : products.length === 0 ? (
-            <p className="text-sm text-[#555]">No products found.</p>
-          ) : (
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-              {products.map(product => (
-                <Link
-                  key={product.id}
-                  href={`/products/${product.id}`}
-                  className="group"
-                >
-                  <div className="relative aspect-3/4 bg-[#F5F5F5] overflow-hidden">
-                    {product.images?.[0] && (
-                      <Image
-                        src={product.images[0]}
-                        alt={product.name}
-                        fill
-                        className="object-cover group-hover:scale-105 transition-transform duration-300"
-                      />
-                    )}
-                    {product.stock === 0 && (
-                      <span className="absolute top-2 left-2 bg-[#111111] text-white text-xs px-2 py-1">
-                        Out of Stock
-                      </span>
-                    )}
-                  </div>
-                  <div className="mt-3">
-                    <p className="text-sm text-[#111111]">{product.name}</p>
-                    <div className="flex items-center gap-2 mt-1">
-                      {product.discount > 0 ? (
-                        <>
-                          <span className="text-sm font-medium text-[#111111]">
-                            ₹{(product.price - product.discount).toFixed(0)}
-                          </span>
-                          <span className="text-xs text-[#999] line-through">
-                            ₹{product.price}
-                          </span>
-                        </>
-                      ) : (
-                        <span className="text-sm font-medium text-[#111111]">
-                          ₹{product.price}
-                        </span>
-                      )}
-                    </div>
-                  </div>
-                </Link>
-              ))}
-            </div>
-          )}
+          <select
+            value={filters.sort}
+            onChange={e => handleFilterChange('sort', e.target.value)}
+            className="ml-auto text-sm border border-[#e0e0e0] px-3 py-2 bg-white text-[#111111] focus:outline-none focus:border-[#7A9E7E]"
+          >
+            <option value="newest">Newest</option>
+            <option value="price_asc">Price: Low to High</option>
+            <option value="price_desc">Price: High to Low</option>
+            <option value="best_selling">Best Selling</option>
+          </select>
         </div>
+      </div>
+
+      {/* Product Grid */}
+      <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-10">
+        {loading ? (
+          <p className="text-sm text-[#555]">Loading products...</p>
+        ) : products.length === 0 ? (
+          <p className="text-sm text-[#555]">No products found.</p>
+        ) : (
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-x-6 gap-y-14">
+            {products.map(product => (
+              <Link
+                key={product.id}
+                href={`/products/${product.id}`}
+                className="group block"
+              >
+                <div className="relative aspect-3/4 bg-[#F5F5F5] overflow-hidden mb-4">
+                  {product.images?.[0] && (
+                    <Image
+                      src={product.images[0]}
+                      alt={product.name}
+                      fill
+                      sizes="(max-width: 768px) 50vw, 33vw"
+                      className="object-cover group-hover:scale-[1.03] transition-transform duration-500"
+                    />
+                  )}
+                  {product.stock === 0 && (
+                    <span className="absolute top-3 left-3 bg-[#111111] text-white text-xs px-2 py-1 tracking-wide">
+                      Out of Stock
+                    </span>
+                  )}
+                </div>
+                <p className="text-sm text-[#111111] mb-1">{product.name}</p>
+                <div className="flex items-center gap-2">
+                  {product.discount > 0 ? (
+                    <>
+                      <span className="text-sm font-medium text-[#111111]">
+                        ₹{(product.price - product.discount).toFixed(0)}
+                      </span>
+                      <span className="text-xs text-[#999] line-through">
+                        ₹{product.price}
+                      </span>
+                    </>
+                  ) : (
+                    <span className="text-sm font-medium text-[#111111]">
+                      ₹{product.price}
+                    </span>
+                  )}
+                </div>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   )
