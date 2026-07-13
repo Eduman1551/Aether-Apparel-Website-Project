@@ -2,7 +2,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 
-export default function LoginPage() {
+type LoginPageProps = {
+  setUser?: (user: any) => void
+}
+
+export default function LoginPage({ setUser }: LoginPageProps) {
   const router = useRouter()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
@@ -35,6 +39,9 @@ export default function LoginPage() {
         return
       }
 
+      if (setUser) {
+        setUser(data.user)
+      }
       router.push('/products')
     } catch {
       setError('Something went wrong. Please try again.')

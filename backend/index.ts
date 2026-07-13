@@ -8,6 +8,8 @@ import ordersRouters from './routes/orders'
 import productRoutes from './routes/products'
 
 const app = express()
+app.use(express.json()) 
+
 app.use(cookieParser())
 app.use(cors({ origin: 'http://localhost:3000', credentials: true }))
 
@@ -19,7 +21,4 @@ app.use('/orders', ordersRouters)
 app
   .listen(5000, () => {
     console.log('Running on port 5000...')
-  })
-  .on('error', err => {
-    console.error('Server failed to start:', err)
   })

@@ -2,7 +2,11 @@ import { useState } from 'react'
 import { useRouter } from 'next/router'
 import Link from 'next/link'
 
-export default function RegisterPage() {
+type RegisterPageProps = {
+  setUser?: (user: any) => void
+}
+
+export default function RegisterPage({ setUser }: RegisterPageProps) {
   const router = useRouter()
   const [form, setForm] = useState({
     name: '',
@@ -40,6 +44,9 @@ export default function RegisterPage() {
         return
       }
 
+      if (setUser) {
+        setUser(data.user)
+      }
       router.push('/products')
     } catch {
       setError('Something went wrong. Please try again.')
