@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
 
-type Product = {
+interface Product {
   id: string
   name: string
   price: number
@@ -14,11 +14,20 @@ type Product = {
   stock: number
 }
 
+const SORT_LABELS: Record<string, string> = {
+  newest: 'Newest',
+  price_asc: 'Price: Low to High',
+  price_desc: 'Price: High to Low',
+  best_selling: 'Best Selling'
+}
+
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
+  const [filtersOpen, setFiltersOpen] = useState(false)
 
   const [filters, setFilters] = useState({
+    search: '',
     gender: '',
     minPrice: '',
     maxPrice: '',
@@ -56,6 +65,7 @@ export default function ProductsPage() {
 
   const clearFilters = () => {
     setFilters({
+      search: '',
       gender: '',
       minPrice: '',
       maxPrice: '',
@@ -64,163 +74,271 @@ export default function ProductsPage() {
     })
   }
 
-  const activeFilterCount = [
-    filters.gender,
-    filters.minPrice,
-    filters.maxPrice,
-    filters.inStock
-  ].filter(Boolean).length
+  const activeChips: { key: string; label: string; clear: () => void }[] = []
+  if (filters.search)
+    activeChips.push({
+      key: 'search',
+      label: `"${filters.search}"`,
+      clear: () => handleFilterChange('search', '')
+    })
+  if (filters.gender)
+    activeChips.push({
+      key: 'gender',
+      label: filters.gender[0].toUpperCase() + filters.gender.slice(1),
+      clear: () => handleFilterChange('gender', '')
+    })
+  if (filters.minPrice || filters.maxPrice)
+    activeChips.push({
+      key: 'price',
+      label: `₹${filters.minPrice || '0'} – ₹${filters.maxPrice || '∞'}`,
+      clear: () => {
+        handleFilterChange('minPrice', '')
+        handleFilterChange('maxPrice', '')
+      }
+    })
+  if (filters.inStock === 'true')
+    activeChips.push({
+      key: 'inStock',
+      label: 'In Stock',
+      clear: () => handleFilterChange('inStock', '')
+    })
 
   return (
     <div className="bg-white min-h-screen">
       {/* Page Title */}
-      <div className="max-w-[1600px] mx-auto px-6 md:px-10 pt-12 pb-6">
-        <p className="text-xs text-[#7A9E7E] font-medium tracking-[0.2em] uppercase mb-2">
+      <div className="max-w-[1600px] mx-auto px-5 sm:px-8 lg:px-12 pt-10 md:pt-14 pb-6">
+        <p className="text-[11px] text-[#7A9E7E] font-medium tracking-[0.25em] uppercase mb-2">
           Collection
         </p>
         <div className="flex flex-wrap items-end justify-between gap-3">
-          <h1 className="text-3xl md:text-4xl font-semibold text-[#111111] tracking-wide">
+          <h1 className="text-3xl sm:text-4xl md:text-[2.75rem] font-semibold text-[#111111] tracking-wide">
             Shop All
           </h1>
           {!loading && (
             <p className="text-sm text-[#999]">
-              {products.length} {products.length === 1 ? 'result' : 'results'}
+              {products.length} {products.length === 1 ? 'piece' : 'pieces'}
             </p>
           )}
         </div>
       </div>
 
-      {/* Horizontal Filter Bar */}
+      {/* Filter Bar */}
       <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-y border-[#e5e5e5]">
-        <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-4 flex flex-wrap items-center gap-3 md:gap-4">
-          <div className="relative">
-            <select
-              value={filters.gender}
-              onChange={e => handleFilterChange('gender', e.target.value)}
-              className="appearance-none text-sm border border-[#e0e0e0] pl-3 pr-8 py-2.5 bg-white text-[#111111] rounded-sm cursor-pointer transition-colors hover:border-[#111111] focus:outline-none focus:border-[#7A9E7E] focus:ring-1 focus:ring-[#7A9E7E]"
-            >
-              <option value="">Gender: All</option>
-              <option value="men">Men</option>
-              <option value="women">Women</option>
-              <option value="unisex">Unisex</option>
-            </select>
-            <svg
-              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#999]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </div>
-
-          <div className="flex items-center gap-1.5 border border-[#e0e0e0] rounded-sm px-2 py-1 transition-colors hover:border-[#111111] focus-within:border-[#7A9E7E] focus-within:ring-1 focus-within:ring-[#7A9E7E]">
-            <span className="text-xs text-[#999] pl-1">₹</span>
-            <input
-              type="number"
-              placeholder="Min"
-              value={filters.minPrice}
-              onChange={e => handleFilterChange('minPrice', e.target.value)}
-              className="w-16 text-sm px-1 py-1.5 focus:outline-none placeholder:text-[#bbb]"
-            />
-            <span className="text-[#ccc] text-sm">–</span>
-            <span className="text-xs text-[#999]">₹</span>
-            <input
-              type="number"
-              placeholder="Max"
-              value={filters.maxPrice}
-              onChange={e => handleFilterChange('maxPrice', e.target.value)}
-              className="w-16 text-sm px-1 py-1.5 focus:outline-none placeholder:text-[#bbb]"
-            />
-          </div>
-
-          <label className="flex items-center gap-2 text-sm text-[#111111] cursor-pointer select-none border border-transparent px-2 py-2 rounded-sm hover:border-[#e0e0e0] transition-colors">
-            <span className="relative flex items-center justify-center w-4 h-4 shrink-0">
-              <input
-                type="checkbox"
-                checked={filters.inStock === 'true'}
-                onChange={e =>
-                  handleFilterChange('inStock', e.target.checked ? 'true' : '')
-                }
-                className="peer appearance-none w-4 h-4 border border-[#c9c9c9] rounded-[3px] checked:bg-[#7A9E7E] checked:border-[#7A9E7E] transition-colors cursor-pointer"
-              />
+        <div className="max-w-[1600px] mx-auto px-5 sm:px-8 lg:px-12">
+          {/* Bar row */}
+          <div className="flex items-center gap-3 py-3.5">
+            {/* Search - always visible */}
+            <div className="relative flex-1 min-w-0 sm:flex-initial sm:w-64">
               <svg
-                className="pointer-events-none absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity"
-                fill="none"
+                className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaa]"
+                width="15"
+                height="15"
                 viewBox="0 0 24 24"
+                fill="none"
                 stroke="currentColor"
-                strokeWidth={3}
+                strokeWidth="2"
               >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  d="M5 13l4 4L19 7"
-                />
+                <circle cx="11" cy="11" r="8" />
+                <path d="M21 21l-4.35-4.35" strokeLinecap="round" />
               </svg>
-            </span>
-            In Stock Only
-          </label>
+              <input
+                type="text"
+                placeholder="Search products..."
+                value={filters.search}
+                onChange={e => handleFilterChange('search', e.target.value)}
+                className="w-full text-sm border border-[#e0e0e0] rounded-sm pl-9 pr-3 py-2.5 bg-white text-[#111111] transition-colors focus:outline-none focus:border-[#7A9E7E] focus:ring-1 focus:ring-[#7A9E7E] placeholder:text-[#bbb]"
+              />
+            </div>
 
-          {activeFilterCount > 0 && (
+            {/* Desktop inline filters */}
+            <div className="hidden md:flex items-center gap-3">
+              <div className="relative">
+                <select
+                  value={filters.gender}
+                  onChange={e => handleFilterChange('gender', e.target.value)}
+                  className="appearance-none text-sm border border-[#e0e0e0] rounded-sm pl-3 pr-8 py-2.5 bg-white text-[#111111] cursor-pointer transition-colors hover:border-[#111111] focus:outline-none focus:border-[#7A9E7E] focus:ring-1 focus:ring-[#7A9E7E]"
+                >
+                  <option value="">Gender: All</option>
+                  <option value="men">Men</option>
+                  <option value="women">Women</option>
+                  <option value="unisex">Unisex</option>
+                </select>
+                <ChevronDown />
+              </div>
+
+              <div className="flex items-center gap-1.5 border border-[#e0e0e0] rounded-sm px-2 py-1 transition-colors hover:border-[#111111] focus-within:border-[#7A9E7E] focus-within:ring-1 focus-within:ring-[#7A9E7E]">
+                <span className="text-xs text-[#999] pl-1">₹</span>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={filters.minPrice}
+                  onChange={e => handleFilterChange('minPrice', e.target.value)}
+                  className="w-14 text-sm px-1 py-1.5 focus:outline-none placeholder:text-[#bbb]"
+                />
+                <span className="text-[#ccc] text-sm">–</span>
+                <span className="text-xs text-[#999]">₹</span>
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={filters.maxPrice}
+                  onChange={e => handleFilterChange('maxPrice', e.target.value)}
+                  className="w-14 text-sm px-1 py-1.5 focus:outline-none placeholder:text-[#bbb]"
+                />
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-[#111111] cursor-pointer select-none border border-transparent px-2 py-2 rounded-sm hover:border-[#e0e0e0] transition-colors">
+                <Checkbox
+                  checked={filters.inStock === 'true'}
+                  onChange={checked =>
+                    handleFilterChange('inStock', checked ? 'true' : '')
+                  }
+                />
+                In Stock
+              </label>
+            </div>
+
+            {/* Mobile filters toggle */}
             <button
-              onClick={clearFilters}
-              className="text-xs text-[#999] hover:text-[#B23B3B] transition-colors tracking-wide underline underline-offset-2 decoration-[#e0e0e0]"
+              onClick={() => setFiltersOpen(v => !v)}
+              className={`md:hidden relative flex items-center gap-1.5 text-sm border rounded-sm px-3 py-2.5 transition-colors ${
+                filtersOpen
+                  ? 'border-[#111111] text-[#111111]'
+                  : 'border-[#e0e0e0] text-[#333]'
+              }`}
             >
-              Clear filters
+              <svg
+                width="15"
+                height="15"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path d="M4 6h16M7 12h10M10 18h4" strokeLinecap="round" />
+              </svg>
+              Filters
+              {activeChips.length > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 w-4 h-4 rounded-full bg-[#7A9E7E] text-white text-[9px] font-semibold flex items-center justify-center">
+                  {activeChips.length}
+                </span>
+              )}
             </button>
+
+            {/* Sort - always visible, pushed right */}
+            <div className="relative ml-auto shrink-0">
+              <select
+                value={filters.sort}
+                onChange={e => handleFilterChange('sort', e.target.value)}
+                className="appearance-none text-sm border border-[#e0e0e0] rounded-sm pl-3 pr-8 py-2.5 bg-white text-[#111111] cursor-pointer transition-colors hover:border-[#111111] focus:outline-none focus:border-[#7A9E7E] focus:ring-1 focus:ring-[#7A9E7E]"
+              >
+                {Object.entries(SORT_LABELS).map(([value, label]) => (
+                  <option key={value} value={value}>
+                    {label}
+                  </option>
+                ))}
+              </select>
+              <ChevronDown />
+            </div>
+          </div>
+
+          {/* Mobile filter panel */}
+          {filtersOpen && (
+            <div className="md:hidden pb-4 flex flex-col gap-3">
+              <div className="relative">
+                <select
+                  value={filters.gender}
+                  onChange={e => handleFilterChange('gender', e.target.value)}
+                  className="w-full appearance-none text-sm border border-[#e0e0e0] rounded-sm pl-3 pr-8 py-2.5 bg-white text-[#111111]"
+                >
+                  <option value="">Gender: All</option>
+                  <option value="men">Men</option>
+                  <option value="women">Women</option>
+                  <option value="unisex">Unisex</option>
+                </select>
+                <ChevronDown />
+              </div>
+
+              <div className="flex items-center gap-1.5 border border-[#e0e0e0] rounded-sm px-2 py-1 w-full">
+                <span className="text-xs text-[#999] pl-1">₹</span>
+                <input
+                  type="number"
+                  placeholder="Min"
+                  value={filters.minPrice}
+                  onChange={e => handleFilterChange('minPrice', e.target.value)}
+                  className="w-full text-sm px-1 py-1.5 focus:outline-none placeholder:text-[#bbb]"
+                />
+                <span className="text-[#ccc] text-sm">–</span>
+                <span className="text-xs text-[#999]">₹</span>
+                <input
+                  type="number"
+                  placeholder="Max"
+                  value={filters.maxPrice}
+                  onChange={e => handleFilterChange('maxPrice', e.target.value)}
+                  className="w-full text-sm px-1 py-1.5 focus:outline-none placeholder:text-[#bbb]"
+                />
+              </div>
+
+              <label className="flex items-center gap-2 text-sm text-[#111111] cursor-pointer select-none">
+                <Checkbox
+                  checked={filters.inStock === 'true'}
+                  onChange={checked =>
+                    handleFilterChange('inStock', checked ? 'true' : '')
+                  }
+                />
+                In Stock Only
+              </label>
+            </div>
           )}
 
-          <div className="relative ml-auto">
-            <select
-              value={filters.sort}
-              onChange={e => handleFilterChange('sort', e.target.value)}
-              className="appearance-none text-sm border border-[#e0e0e0] pl-3 pr-8 py-2.5 bg-white text-[#111111] rounded-sm cursor-pointer transition-colors hover:border-[#111111] focus:outline-none focus:border-[#7A9E7E] focus:ring-1 focus:ring-[#7A9E7E]"
-            >
-              <option value="newest">Newest</option>
-              <option value="price_asc">Price: Low to High</option>
-              <option value="price_desc">Price: High to Low</option>
-              <option value="best_selling">Best Selling</option>
-            </select>
-            <svg
-              className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#999]"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M19 9l-7 7-7-7"
-              />
-            </svg>
-          </div>
+          {/* Active filter chips */}
+          {activeChips.length > 0 && (
+            <div className="flex flex-wrap items-center gap-2 pb-3.5">
+              {activeChips.map(chip => (
+                <button
+                  key={chip.key}
+                  onClick={chip.clear}
+                  className="group flex items-center gap-1.5 text-xs text-[#333] bg-[#F5F5F5] hover:bg-[#eee] rounded-full pl-3 pr-2 py-1.5 transition-colors"
+                >
+                  {chip.label}
+                  <svg
+                    width="10"
+                    height="10"
+                    viewBox="0 0 24 24"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2.5"
+                    className="text-[#999] group-hover:text-[#B23B3B] transition-colors"
+                  >
+                    <path d="M18 6L6 18M6 6l12 12" strokeLinecap="round" />
+                  </svg>
+                </button>
+              ))}
+              <button
+                onClick={clearFilters}
+                className="text-xs text-[#999] hover:text-[#B23B3B] transition-colors underline underline-offset-2 decoration-[#e0e0e0] ml-1"
+              >
+                Clear all
+              </button>
+            </div>
+          )}
         </div>
       </div>
 
       {/* Product Grid */}
-      <div className="max-w-[1600px] mx-auto px-6 md:px-10 py-10">
+      <div className="max-w-[1600px] mx-auto px-5 sm:px-8 lg:px-12 py-10 md:py-14">
         {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10">
-            {Array.from({ length: 8 }).map((_, i) => (
-              <div key={i} className="border border-[#eeeeee] animate-pulse">
-                <div className="aspect-square sm:aspect-4/5 bg-[#F0F0F0]" />
-                <div className="p-3.5">
-                  <div className="h-2.5 bg-[#F0F0F0] rounded-sm w-1/4 mb-3" />
-                  <div className="h-3.5 bg-[#F0F0F0] rounded-sm w-3/4 mb-2.5" />
-                  <div className="h-3 bg-[#F0F0F0] rounded-sm w-1/2 mb-3" />
-                  <div className="h-3.5 bg-[#F0F0F0] rounded-sm w-1/3" />
-                </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12 md:gap-x-8 md:gap-y-16">
+            {Array.from({ length: 6 }).map((_, i) => (
+              <div key={i} className="animate-pulse">
+                <div className="aspect-3/4 bg-[#F0F0F0] rounded-sm mb-4" />
+                <div className="h-2 bg-[#F0F0F0] rounded-sm w-1/4 mb-3" />
+                <div className="h-3.5 bg-[#F0F0F0] rounded-sm w-3/4 mb-2.5" />
+                <div className="h-3.5 bg-[#F0F0F0] rounded-sm w-1/3" />
               </div>
             ))}
           </div>
         ) : products.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-28 text-center">
+          <div className="flex flex-col items-center justify-center py-32 text-center">
             <svg
               className="w-10 h-10 text-[#ccc] mb-4"
               fill="none"
@@ -238,7 +356,7 @@ export default function ProductsPage() {
             <p className="text-xs text-[#999] mb-6">
               Try adjusting or clearing your filters
             </p>
-            {activeFilterCount > 0 && (
+            {activeChips.length > 0 && (
               <button
                 onClick={clearFilters}
                 className="text-sm border border-[#111111] px-5 py-2.5 text-[#111111] hover:bg-[#111111] hover:text-white transition-colors"
@@ -248,7 +366,7 @@ export default function ProductsPage() {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-x-5 gap-y-10">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12 md:gap-x-8 md:gap-y-16">
             {products.map(product => {
               const hasDiscount = product.discount > 0
               const finalPrice = product.price - product.discount
@@ -260,117 +378,107 @@ export default function ProductsPage() {
                 <Link
                   key={product.id}
                   href={`/products/${product.id}`}
-                  className="group block border border-[#eeeeee] hover:border-[#d8d8d8] hover:shadow-[0_4px_20px_rgba(0,0,0,0.06)] transition-all duration-300 bg-white"
+                  className="group block"
                 >
                   {/* Image */}
-                  <div className="relative aspect-square sm:aspect-4/5 bg-[#F5F5F5] overflow-hidden">
+                  <div className="relative aspect-video  bg-[#F5F5F5] overflow-hidden rounded-sm mb-4">
                     {product.images?.[0] && (
                       <>
                         <Image
                           src={product.images[0]}
                           alt={product.name}
                           fill
-                          sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
-                          className="object-cover transition-all duration-700 ease-out group-hover:scale-[1.04]"
+                          sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+                          className="object-cover transition-all duration-700 ease-out group-hover:scale-[1.05]"
                         />
                         {product.images?.[1] && (
                           <Image
                             src={product.images[1]}
                             alt={`${product.name} alternate`}
                             fill
-                            sizes="(max-width: 640px) 100vw, (max-width: 768px) 50vw, 25vw"
+                            sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
                             className="object-cover absolute inset-0 opacity-0 transition-opacity duration-500 ease-out group-hover:opacity-100"
                           />
                         )}
                       </>
                     )}
 
-                    <div className="absolute top-2.5 left-2.5 flex flex-col gap-1.5">
+                    <div className="absolute top-3 left-3 flex flex-col gap-1.5">
                       {product.stock === 0 && (
-                        <span className="bg-[#111111] text-white text-[9px] font-semibold px-2 py-1 tracking-wider uppercase">
+                        <span className="bg-[#111111] text-white text-[10px] font-semibold px-2.5 py-1 tracking-wider uppercase">
                           Out of Stock
                         </span>
                       )}
                       {hasDiscount && product.stock > 0 && (
-                        <span className="bg-[#7A9E7E] text-white text-[9px] font-semibold px-2 py-1 tracking-wider uppercase">
+                        <span className="bg-[#7A9E7E] text-white text-[10px] font-semibold px-2.5 py-1 tracking-wider uppercase">
                           {discountPercent}% Off
                         </span>
                       )}
                     </div>
 
                     {product.stock > 0 && product.stock <= 5 && (
-                      <span className="absolute top-2.5 right-2.5 bg-white/95 text-[#B08D57] text-[9px] font-semibold px-2 py-1 tracking-wider uppercase">
+                      <span className="absolute top-3 right-3 bg-white/95 text-[#B08D57] text-[10px] font-semibold px-2.5 py-1 tracking-wider uppercase">
                         Low Stock
                       </span>
                     )}
 
+                    {/* Quick view overlay */}
                     <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
-                      <div className="bg-[#111111] text-center py-2 text-[11px] font-medium text-white tracking-widest uppercase">
+                      <div className="bg-[#111111] text-center py-3 text-[11px] font-medium text-white tracking-[0.2em] uppercase">
                         View Product
                       </div>
                     </div>
                   </div>
 
                   {/* Details */}
-                  <div className="p-3.5">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-[9px] font-medium text-[#999] tracking-widest uppercase">
-                        {product.gender}
-                      </span>
-                      {product.colors?.length > 0 && (
-                        <span className="text-[9px] text-[#999]">
-                          {product.colors.length}{' '}
-                          {product.colors.length === 1 ? 'colour' : 'colours'}
-                        </span>
-                      )}
-                    </div>
-
-                    <p className="text-sm text-[#111111] font-medium mb-1 leading-snug line-clamp-1 group-hover:text-[#7A9E7E] transition-colors">
-                      {product.name}
-                    </p>
-
-                    {product.sizes?.length > 0 && (
-                      <p className="text-[11px] text-[#999] mb-2.5 tracking-wide">
-                        Sizes {product.sizes.join(' · ')}
-                      </p>
-                    )}
-
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-baseline gap-1.5">
-                        {hasDiscount ? (
-                          <>
-                            <span className="text-sm font-semibold text-[#111111]">
-                              ₹{finalPrice.toFixed(0)}
-                            </span>
-                            <span className="text-[11px] text-[#999] line-through">
-                              ₹{product.price}
-                            </span>
-                          </>
-                        ) : (
-                          <span className="text-sm font-semibold text-[#111111]">
-                            ₹{product.price}
+                  <div className="flex items-start justify-between gap-2 mb-1">
+                    <span className="text-[10px] font-medium text-[#999] tracking-widest uppercase">
+                      {product.gender}
+                    </span>
+                    {product.colors?.length > 0 && (
+                      <div className="flex items-center -space-x-1">
+                        {product.colors.slice(0, 4).map((color, i) => (
+                          <span
+                            key={i}
+                            className="w-3 h-3 rounded-full border-2 border-white ring-1 ring-[#e0e0e0]"
+                            style={{ backgroundColor: color.toLowerCase() }}
+                            title={color}
+                          />
+                        ))}
+                        {product.colors.length > 4 && (
+                          <span className="text-[9px] text-[#999] pl-2">
+                            +{product.colors.length - 4}
                           </span>
                         )}
                       </div>
+                    )}
+                  </div>
 
-                      {product.colors?.length > 0 && (
-                        <div className="flex items-center -space-x-1">
-                          {product.colors.slice(0, 3).map((color, i) => (
-                            <span
-                              key={i}
-                              className="w-3 h-3 rounded-full border-2 border-white ring-1 ring-[#e0e0e0]"
-                              style={{ backgroundColor: color.toLowerCase() }}
-                              title={color}
-                            />
-                          ))}
-                          {product.colors.length > 3 && (
-                            <span className="text-[9px] text-[#999] pl-2">
-                              +{product.colors.length - 3}
-                            </span>
-                          )}
-                        </div>
-                      )}
-                    </div>
+                  <p className="text-[15px] text-[#111111] font-medium mb-1 leading-snug group-hover:text-[#7A9E7E] transition-colors">
+                    {product.name}
+                  </p>
+
+                  {product.sizes?.length > 0 && (
+                    <p className="text-[11px] text-[#999] mb-2 tracking-wide">
+                      Sizes {product.sizes.join(' · ')}
+                    </p>
+                  )}
+
+                  <div className="flex items-baseline gap-1.5">
+                    {hasDiscount ? (
+                      <>
+                        <span className="text-sm font-semibold text-[#111111]">
+                          ₹{finalPrice.toFixed(0)}
+                        </span>
+                        <span className="text-[12px] text-[#999] line-through">
+                          ₹{product.price}
+                        </span>
+                      </>
+                    ) : (
+                      <span className="text-sm font-semibold text-[#111111]">
+                        ₹{product.price}
+                      </span>
+                    )}
                   </div>
                 </Link>
               )
@@ -379,5 +487,51 @@ export default function ProductsPage() {
         )}
       </div>
     </div>
+  )
+}
+
+function ChevronDown() {
+  return (
+    <svg
+      className="pointer-events-none absolute right-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-[#999]"
+      fill="none"
+      viewBox="0 0 24 24"
+      stroke="currentColor"
+    >
+      <path
+        strokeLinecap="round"
+        strokeLinejoin="round"
+        strokeWidth={2}
+        d="M19 9l-7 7-7-7"
+      />
+    </svg>
+  )
+}
+
+function Checkbox({
+  checked,
+  onChange
+}: {
+  checked: boolean
+  onChange: (checked: boolean) => void
+}) {
+  return (
+    <span className="relative flex items-center justify-center w-4 h-4 shrink-0">
+      <input
+        type="checkbox"
+        checked={checked}
+        onChange={e => onChange(e.target.checked)}
+        className="peer appearance-none w-4 h-4 border border-[#c9c9c9] rounded-[3px] checked:bg-[#7A9E7E] checked:border-[#7A9E7E] transition-colors cursor-pointer"
+      />
+      <svg
+        className="pointer-events-none absolute w-3 h-3 text-white opacity-0 peer-checked:opacity-100 transition-opacity"
+        fill="none"
+        viewBox="0 0 24 24"
+        stroke="currentColor"
+        strokeWidth={3}
+      >
+        <path strokeLinecap="round" strokeLinejoin="round" d="M5 13l4 4L19 7" />
+      </svg>
+    </span>
   )
 }

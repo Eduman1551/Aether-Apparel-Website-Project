@@ -130,7 +130,7 @@ export default function Footer() {
         </div>
 
         {/* Contact - always shown */}
-        <div>
+        <div className="hidden md:blockw">
           <h4 className="text-xs font-semibold text-[#111111] mb-5 tracking-[0.15em] uppercase">
             Get in Touch
           </h4>
