@@ -61,7 +61,6 @@ model Address {
   id        String  @id @default(uuid())
   userId    String
   user      User    @relation(fields: [userId], references: [id])
-  fullName  String
   phone     String
   street    String
   city      String
