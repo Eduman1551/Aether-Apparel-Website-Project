@@ -1,7 +1,18 @@
+import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
 
 export default function HomePage() {
+  const [email, setEmail] = useState('')
+  const [subscribed, setSubscribed] = useState(false)
+
+  const handleSubscribe = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (!email) return
+    setSubscribed(true)
+    setEmail('')
+  }
+
   return (
     <div className="bg-white">
       <section className="relative h-[85vh] w-full overflow-hidden">
@@ -90,15 +101,15 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {[
             {
-              name: 'Ananya R.',
+              name: 'Manny T.',
               text: 'The quality feels premium and the fit is exactly what I look for in casual wear.'
             },
             {
-              name: 'Kabir S.',
+              name: 'Catherine S.',
               text: 'Clean designs, comfortable fabric — my go-to brand for everyday outfits now.'
             },
             {
-              name: 'Meera T.',
+              name: 'Melia W.',
               text: 'Simple, minimal, and exactly as described. Delivery was quick too.'
             }
           ].map(t => (
@@ -119,19 +130,32 @@ export default function HomePage() {
         <p className="text-white/70 text-sm mb-6">
           Get updates on new arrivals, sales, and exclusive drops.
         </p>
-        <form className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
-          <input
-            type="email"
-            placeholder="Enter your email"
-            className="w-full sm:w-auto flex-1 px-4 py-3 text-sm bg-white text-[#111111] focus:outline-none"
-          />
-          <button
-            type="submit"
-            className="bg-[#7A9E7E] text-white px-6 py-3 text-sm font-medium hover:bg-white hover:text-[#111111] transition-colors"
+
+        {subscribed ? (
+          <p className="text-[#7A9E7E] text-sm font-medium max-w-md mx-auto">
+            You will now receive messages regarding our products.
+          </p>
+        ) : (
+          <form
+            onSubmit={handleSubscribe}
+            className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto"
           >
-            Subscribe
-          </button>
-        </form>
+            <input
+              type="email"
+              required
+              value={email}
+              onChange={e => setEmail(e.target.value)}
+              placeholder="Enter your email"
+              className="w-full sm:w-auto flex-1 px-4 py-3 text-sm bg-white text-[#111111] focus:outline-none"
+            />
+            <button
+              type="submit"
+              className="bg-[#7A9E7E] text-white px-6 py-3 text-sm font-medium hover:bg-white hover:text-[#111111] transition-colors"
+            >
+              Subscribe
+            </button>
+          </form>
+        )}
       </section>
     </div>
   )

@@ -3,8 +3,10 @@ import cors from 'cors'
 import 'dotenv/config'
 import express from 'express'
 import addressRoutes from './routes/addresses'
+import adminRoutes from './routes/admin'
 import authRoutes from './routes/auth'
 import cartRoutes from './routes/cart'
+import categoryRoutes from './routes/categories'
 import ordersRouters from './routes/orders'
 import productRoutes from './routes/products'
 
@@ -19,6 +21,8 @@ app.use('/products', productRoutes)
 app.use('/cart', cartRoutes)
 app.use('/orders', ordersRouters)
 app.use('/addresses', addressRoutes)
+app.use('/admin', adminRoutes)
+app.use('/categories', categoryRoutes)
 
 app.listen(5000, () => {
   console.log('Running on port 5000...')

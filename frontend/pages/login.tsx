@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 
 type LoginPageProps = {
-  setUser?: (user: any) => void
+  setUser?: (user: unknown) => void
 }
 
 export default function LoginPage({ setUser }: LoginPageProps) {
@@ -51,7 +51,7 @@ export default function LoginPage({ setUser }: LoginPageProps) {
   }
 
   return (
-    <div className="flex items-center justify-center bg-white px-6 mb-auto mt-20">
+    <div className="flex items-center justify-center bg-white px-6 mb-9 mt-20">
       <div className="w-full max-w-sm">
         <h1 className="text-2xl font-semibold text-[#111111] text-center mb-2">
           Welcome Back
