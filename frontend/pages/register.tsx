@@ -3,7 +3,7 @@ import { useRouter } from 'next/router'
 import Link from 'next/link'
 
 type RegisterPageProps = {
-  setUser?: (user: any) => void
+  setUser?: (user: unknown) => void
 }
 
 export default function RegisterPage({ setUser }: RegisterPageProps) {

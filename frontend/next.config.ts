@@ -4,7 +4,8 @@ const nextConfig: NextConfig = {
   images: {
     remotePatterns: [{ hostname: 'images.unsplash.com' }]
   },
-  reactStrictMode: true
+  reactStrictMode: true,
+  devIndicators: false
 }
 
 export default nextConfig
