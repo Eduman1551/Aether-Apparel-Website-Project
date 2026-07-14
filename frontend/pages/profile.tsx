@@ -98,7 +98,6 @@ export default function ProfilePage({ user }: ProfilePageProps) {
   const [addressesLoading, setAddressesLoading] = useState(true)
   const [showAddAddress, setShowAddAddress] = useState(false)
 
-  // Address form (used for both add and edit)
   const [editingAddressId, setEditingAddressId] = useState<string | null>(null)
   const [addressForm, setAddressForm] = useState({
     phone: '',
@@ -196,9 +195,36 @@ export default function ProfilePage({ user }: ProfilePageProps) {
     }
   }
 
-  // Start editing an address – populate form
+  // Cancel order handler
+  const handleCancelOrder = async (orderId: string) => {
+    if (!confirm('Are you sure you want to cancel this order?')) return
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/orders/${orderId}/cancel`,
+        {
+          method: 'PATCH',
+          credentials: 'include'
+        }
+      )
+
+      if (res.ok) {
+        // Update local state
+        setOrders(prev =>
+          prev.map(o => (o.id === orderId ? { ...o, status: 'CANCELLED' } : o))
+        )
+      } else {
+        const data = await res.json().catch(() => ({}))
+        alert(data.message || 'Failed to cancel order')
+      }
+    } catch {
+      alert('Something went wrong while cancelling.')
+    }
+  }
+
+  // Address handlers (same as before)
   const startEditAddress = (addr: Address) => {
-    setShowAddAddress(false) // close add form if open
+    setShowAddAddress(false)
     setEditingAddressId(addr.id)
     setAddressForm({
       phone: addr.phone,
@@ -224,7 +250,6 @@ export default function ProfilePage({ user }: ProfilePageProps) {
     setAddressError('')
   }
 
-  // Submit address (add or update)
   const handleAddressSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault()
     setAddressError('')
@@ -254,7 +279,6 @@ export default function ProfilePage({ user }: ProfilePageProps) {
         return
       }
 
-      // Update local state
       if (editingAddressId) {
         setAddresses(prev =>
           prev.map(a => (a.id === editingAddressId ? data.address : a))
@@ -265,7 +289,6 @@ export default function ProfilePage({ user }: ProfilePageProps) {
         setShowAddAddress(false)
       }
 
-      // Reset form
       setAddressForm({
         phone: '',
         street: '',
@@ -354,6 +377,7 @@ export default function ProfilePage({ user }: ProfilePageProps) {
         {/* ========== ACCOUNT TAB ========== */}
         {activeTab === 'account' && (
           <div className="max-w-md">
+            {/* ... existing account details unchanged ... */}
             <div className="flex items-center justify-between gap-5 mb-10">
               <div className="flex items-center gap-5">
                 <div className="w-16 h-16 rounded-full bg-[#111111] flex items-center justify-center shrink-0">
@@ -621,7 +645,7 @@ export default function ProfilePage({ user }: ProfilePageProps) {
                             </div>
                           )}
 
-                          <div className="bg-[#F5F5F5] p-4 text-sm space-y-2">
+                          <div className="bg-[#F5F5F5] p-4 text-sm space-y-2 mb-5">
                             <div className="flex justify-between text-[#555]">
                               <span>Subtotal</span>
                               <span>₹{order.subtotal.toFixed(0)}</span>
@@ -645,6 +669,16 @@ export default function ProfilePage({ user }: ProfilePageProps) {
                               <span>₹{order.total.toFixed(0)}</span>
                             </div>
                           </div>
+
+                          {/* Cancel button – only if order can be cancelled */}
+                          {['PENDING', 'CONFIRMED'].includes(order.status) && (
+                            <button
+                              onClick={() => handleCancelOrder(order.id)}
+                              className="border border-red-300 text-red-600 px-4 py-2 text-sm hover:bg-red-50 transition-colors"
+                            >
+                              Cancel Order
+                            </button>
+                          )}
                         </div>
                       )}
                     </div>

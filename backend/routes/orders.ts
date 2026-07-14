@@ -144,4 +144,32 @@ router.get('/:id', requireAuth, async (req: AuthRequest, res: Response) => {
   }
 })
 
+router.patch('/:id/cancel', requireAuth, async (req: AuthRequest, res: Response) => {
+  try {
+    const { id } = req.params as { id: string }
+
+    const order = await prisma.order.findFirst({
+      where: { id, userId: req.userId }
+    })
+
+    if (!order) {
+      return res.status(404).json({ message: 'Order not found' })
+    }
+
+    if (!['PENDING', 'CONFIRMED'].includes(order.status)) {
+      return res.status(400).json({ message: 'Order cannot be cancelled' })
+    }
+
+    const updated = await prisma.order.update({
+      where: { id },
+      data: { status: 'CANCELLED' }
+    })
+
+    return res.status(200).json({ order: updated })
+  } catch (error) {
+    console.error('Cancel order error:', error)
+    return res.status(500).json({ message: 'Something went wrong' })
+  }
+})
+
 export default router
