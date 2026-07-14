@@ -3,6 +3,7 @@ import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 import Image from 'next/image'
 
+/* ---------- Types ---------- */
 type CartProduct = {
   id: string
   name: string
@@ -19,6 +20,16 @@ type CartItem = {
   product: CartProduct
 }
 
+type Address = {
+  id: string
+  phone: string
+  street: string
+  city: string
+  state: string
+  pinCode: string
+  isDefault: boolean
+}
+
 type AppUser = { id: string; name: string; email: string } | null
 
 type CheckoutPageProps = {
@@ -28,30 +39,31 @@ type CheckoutPageProps = {
 export default function CheckoutPage({ user }: CheckoutPageProps) {
   const router = useRouter()
 
+  // Cart
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [cartLoading, setCartLoading] = useState(true)
 
-  const [form, setForm] = useState({
-    phone: '',
-    street: '',
-    city: '',
-    state: '',
-    pinCode: ''
-  })
+  // Addresses
+  const [addresses, setAddresses] = useState<Address[]>([])
+  const [addressesLoading, setAddressesLoading] = useState(true)
+  const [selectedAddressId, setSelectedAddressId] = useState<string>('')
+
+  // Payment & errors
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'COD'>('COD')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [successOrderId, setSuccessOrderId] = useState<string | null>(null)
 
+  // Redirect if not logged in
   useEffect(() => {
     if (user === null) {
       router.replace('/login')
     }
   }, [user, router])
 
+  // Fetch cart
   useEffect(() => {
     if (!user) return
-
     const fetchCart = async () => {
       setCartLoading(true)
       try {
@@ -68,14 +80,43 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
         setCartLoading(false)
       }
     }
-
     fetchCart()
   }, [user])
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    setForm({ ...form, [e.target.name]: e.target.value })
-  }
+  // Fetch addresses
+  useEffect(() => {
+    if (!user) return
+    const fetchAddresses = async () => {
+      setAddressesLoading(true)
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/addresses`,
+          {
+            credentials: 'include'
+          }
+        )
+        if (res.ok) {
+          const data = await res.json()
+          const list: Address[] = data.addresses || []
+          setAddresses(list)
+          // Auto‑select default address if available
+          const defaultAddr = list.find(a => a.isDefault)
+          if (defaultAddr) {
+            setSelectedAddressId(defaultAddr.id)
+          } else if (list.length > 0) {
+            setSelectedAddressId(list[0].id)
+          }
+        }
+      } catch (err) {
+        console.error('Failed to fetch addresses', err)
+      } finally {
+        setAddressesLoading(false)
+      }
+    }
+    fetchAddresses()
+  }, [user])
 
+  // Calculations
   const subtotal = cartItems.reduce((sum, item) => {
     const price = item.product.price - item.product.discount
     return sum + price * item.quantity
@@ -83,6 +124,7 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
   const shipping = subtotal > 0 && subtotal <= 999 ? 99 : 0
   const total = subtotal + shipping
 
+  // Place order
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault()
     setError('')
@@ -92,27 +134,14 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
       return
     }
 
+    if (!selectedAddressId) {
+      setError('Please select a delivery address.')
+      return
+    }
+
     setSubmitting(true)
 
     try {
-      const addressRes = await fetch(
-        `${process.env.NEXT_PUBLIC_API_URL}/addresses`,
-        {
-          method: 'POST',
-          credentials: 'include',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(form)
-        }
-      )
-
-      const addressData = await addressRes.json()
-
-      if (!addressRes.ok) {
-        setError(addressData.message || 'Failed to save address')
-        setSubmitting(false)
-        return
-      }
-
       const orderRes = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/orders`,
         {
@@ -120,7 +149,7 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
           credentials: 'include',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            addressId: addressData.address.id,
+            addressId: selectedAddressId,
             paymentMethod
           })
         }
@@ -135,15 +164,17 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
       }
 
       setSuccessOrderId(orderData.order.id)
-    } catch  {
+    } catch {
       setError('Something went wrong. Please try again.')
     } finally {
       setSubmitting(false)
     }
   }
 
+  // ---------- Render ----------
   if (user === null) return null
 
+  // Success screen
   if (successOrderId) {
     return (
       <main className="bg-white min-h-screen flex items-center justify-center px-6">
@@ -193,8 +224,10 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
     )
   }
 
+  // Main checkout
   return (
     <main className="bg-white min-h-screen">
+      {/* Header */}
       <div className="max-w-5xl mx-auto px-6 md:px-10 pt-10 pb-6">
         <h1 className="text-2xl md:text-3xl font-semibold text-[#111111] tracking-wide">
           Checkout
@@ -214,82 +247,78 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
 
       <div className="max-w-5xl mx-auto px-6 md:px-10 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
+          {/* ---------- LEFT: Delivery & Payment ---------- */}
           <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-10">
+            {/* Address selection */}
             <div>
               <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-5">
-                Delivery Details
+                Delivery Address
               </h2>
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-xs text-[#999] uppercase tracking-widest mb-1">
-                    Phone
-                  </label>
-                  <input
-                    type="tel"
-                    name="phone"
-                    value={form.phone}
-                    onChange={handleChange}
-                    required
-                    className="w-full border border-[#e0e0e0] px-3 py-2.5 text-sm focus:outline-none focus:border-[#7A9E7E]"
-                  />
+
+              {addressesLoading ? (
+                <div className="space-y-3">
+                  <div className="h-16 bg-[#F5F5F5] animate-pulse rounded" />
+                  <div className="h-16 bg-[#F5F5F5] animate-pulse rounded" />
                 </div>
-                <div>
-                  <label className="block text-xs text-[#999] uppercase tracking-widest mb-1">
-                    Street Address
-                  </label>
-                  <input
-                    type="text"
-                    name="street"
-                    value={form.street}
-                    onChange={handleChange}
-                    required
-                    className="w-full border border-[#e0e0e0] px-3 py-2.5 text-sm focus:outline-none focus:border-[#7A9E7E]"
-                  />
+              ) : addresses.length === 0 ? (
+                <div className="border border-[#e5e5e5] p-6 text-center">
+                  <p className="text-sm text-[#555] mb-3">
+                    You don&apos;t have any saved addresses yet.
+                  </p>
+                  <Link
+                    href="/profile"
+                    className="inline-block bg-[#111111] text-white px-5 py-2 text-sm font-medium hover:bg-[#7A9E7E] transition-colors"
+                  >
+                    Add Address in My Account
+                  </Link>
                 </div>
-                <div className="grid grid-cols-3 gap-4">
-                  <div>
-                    <label className="block text-xs text-[#999] uppercase tracking-widest mb-1">
-                      City
-                    </label>
-                    <input
-                      type="text"
-                      name="city"
-                      value={form.city}
-                      onChange={handleChange}
-                      required
-                      className="w-full border border-[#e0e0e0] px-3 py-2.5 text-sm focus:outline-none focus:border-[#7A9E7E]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-[#999] uppercase tracking-widest mb-1">
-                      State
-                    </label>
-                    <input
-                      type="text"
-                      name="state"
-                      value={form.state}
-                      onChange={handleChange}
-                      required
-                      className="w-full border border-[#e0e0e0] px-3 py-2.5 text-sm focus:outline-none focus:border-[#7A9E7E]"
-                    />
-                  </div>
-                  <div>
-                    <label className="block text-xs text-[#999] uppercase tracking-widest mb-1">
-                      PIN Code
-                    </label>
-                    <input
-                      type="text"
-                      name="pinCode"
-                      value={form.pinCode}
-                      onChange={handleChange}
-                      required
-                      className="w-full border border-[#e0e0e0] px-3 py-2.5 text-sm focus:outline-none focus:border-[#7A9E7E]"
-                    />
-                  </div>
+              ) : (
+                <div className="space-y-3">
+                  {addresses.map(addr => {
+                    const isSelected = selectedAddressId === addr.id
+                    return (
+                      <label
+                        key={addr.id}
+                        className={`block border p-4 cursor-pointer transition-colors ${
+                          isSelected
+                            ? 'border-[#111111] bg-[#f9f9f9]'
+                            : 'border-[#e5e5e5] hover:border-[#111111]'
+                        }`}
+                      >
+                        <div className="flex items-start gap-3">
+                          <input
+                            type="radio"
+                            name="address"
+                            value={addr.id}
+                            checked={isSelected}
+                            onChange={() => setSelectedAddressId(addr.id)}
+                            className="mt-0.5 accent-[#111111]"
+                          />
+                          <div className="text-sm flex-1">
+                            <p className="font-medium text-[#111111]">
+                              {addr.street}, {addr.city}
+                            </p>
+                            <p className="text-[#555]">
+                              {addr.state} – {addr.pinCode}
+                            </p>
+                            <p className="text-[#999] text-xs">
+                              Phone: {addr.phone}
+                            </p>
+                            {addr.isDefault && (
+                              <span className="inline-block mt-1 text-[10px] font-medium text-[#7A9E7E] bg-[#f0f9f0] px-2 py-0.5 rounded-full">
+                                Default
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      </label>
+                    )
+                  })}
                 </div>
-              </div>
+              )}
             </div>
 
+            {/* Payment method */}
             <div>
               <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-5">
                 Payment Method
@@ -324,7 +353,14 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
 
             <button
               type="submit"
-              disabled={submitting || cartLoading || cartItems.length === 0}
+              disabled={
+                submitting ||
+                cartLoading ||
+                addressesLoading ||
+                cartItems.length === 0 ||
+                addresses.length === 0 ||
+                !selectedAddressId
+              }
               className="w-full bg-[#111111] text-white py-3.5 text-sm font-medium hover:bg-[#7A9E7E] transition-colors disabled:opacity-50"
             >
               {submitting
@@ -333,6 +369,7 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
             </button>
           </form>
 
+          {/* ---------- RIGHT: Order Summary ---------- */}
           <div className="lg:col-span-1">
             <div className="bg-[#F5F5F5] p-6">
               <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-5">
