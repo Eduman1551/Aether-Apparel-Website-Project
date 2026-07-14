@@ -46,6 +46,11 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
 
+  // --- Cart state ---
+  const [cartError, setCartError] = useState('')
+  const [cartAdding, setCartAdding] = useState(false)
+  const [cartAdded, setCartAdded] = useState(false)
+
   const fetchProduct = async () => {
     setLoading(true)
     try {
@@ -128,6 +133,56 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
       }
     } catch (err) {
       console.error('Failed to delete review', err)
+    }
+  }
+
+  // --- Add to Cart handler ---
+  const handleAddToCart = async () => {
+    setCartError('')
+    setCartAdded(false)
+
+    if (!product) return
+
+    if (product.sizes.length > 0 && !selectedSize) {
+      setCartError('Please select a size.')
+      return
+    }
+    if (product.colors.length > 0 && !selectedColor) {
+      setCartError('Please select a color.')
+      return
+    }
+
+    setCartAdding(true)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: id,
+          size: selectedSize || undefined,
+          color: selectedColor || undefined,
+          quantity
+        })
+      })
+
+      if (res.status === 401) {
+        router.push('/login')
+        return
+      }
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setCartError(data.message || 'Failed to add to cart')
+        return
+      }
+
+      setCartAdded(true)
+    } catch {
+      setCartError('Something went wrong. Please try again.')
+    } finally {
+      setCartAdding(false)
     }
   }
 
@@ -232,7 +287,10 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
               {product.colors.map(color => (
                 <button
                   key={color}
-                  onClick={() => setSelectedColor(color)}
+                  onClick={() => {
+                    setSelectedColor(color)
+                    setCartError('')
+                  }}
                   className={`px-3 py-1.5 text-xs border ${
                     selectedColor === color
                       ? 'border-[#111111] bg-[#111111] text-white'
@@ -251,7 +309,10 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
               {product.sizes.map(size => (
                 <button
                   key={size}
-                  onClick={() => setSelectedSize(size)}
+                  onClick={() => {
+                    setSelectedSize(size)
+                    setCartError('')
+                  }}
                   className={`w-10 h-10 text-xs border ${
                     selectedSize === size
                       ? 'border-[#111111] bg-[#111111] text-white'
@@ -290,14 +351,22 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
             </p>
           </div>
 
+          {cartError && (
+            <p className="text-sm text-red-600 mt-3">{cartError}</p>
+          )}
+          {cartAdded && (
+            <p className="text-sm text-[#7A9E7E] mt-3">Added to your cart.</p>
+          )}
+
           <button
-            disabled={product.stock === 0}
+            onClick={handleAddToCart}
+            disabled={product.stock === 0 || cartAdding}
             className="w-full mt-5 bg-[#111111] text-white py-3 text-sm font-medium hover:bg-[#7A9E7E] transition-colors disabled:opacity-50"
           >
-            Add to Cart
+            {cartAdding ? 'Adding...' : 'Add to Cart'}
           </button>
 
-          <div className="mt-6 divide-y divide-[#e5e5e5] border-t border-[#e5e5e5]">
+          <div className="mt-6 divide-y divide-[#141111] border-t border-[#e5e5e5]">
             <div className="py-3">
               <p className="text-xs font-medium text-[#111111] mb-1">
                 Material
