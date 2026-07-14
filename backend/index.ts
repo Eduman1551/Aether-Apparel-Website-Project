@@ -10,6 +10,7 @@ import categoryRoutes from './routes/categories'
 import ordersRouters from './routes/orders'
 import productRoutes from './routes/products'
 import userRoutes from './routes/users'
+import reviewRoutes from './routes/reviews'
 
 const app = express()
 app.use(express.json())
@@ -25,6 +26,7 @@ app.use('/addresses', addressRoutes)
 app.use('/admin', adminRoutes)
 app.use('/categories', categoryRoutes)
 app.use('/users', userRoutes)
+app.use('/reviews', reviewRoutes)
 
 app.listen(5000, () => {
   console.log('Running on port 5000...')

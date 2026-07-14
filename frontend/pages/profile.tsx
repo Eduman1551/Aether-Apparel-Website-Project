@@ -185,25 +185,36 @@ export default function ProfilePage({ user }: ProfilePageProps) {
 
         {activeTab === 'account' && (
           <div className="max-w-md">
-            <div className="flex items-center gap-5 mb-10">
-              <div className="w-16 h-16 rounded-full bg-[#111111] flex items-center justify-center shrink-0">
-                <span className="text-white text-xl font-semibold">
-                  {user?.name
-                    .split(' ')
-                    .map(n => n[0])
-                    .slice(0, 2)
-                    .join('')
-                    .toUpperCase()}
-                </span>
+            <div className="flex items-center justify-between gap-5 mb-10">
+              <div className="flex items-center gap-5">
+                <div className="w-16 h-16 rounded-full bg-[#111111] flex items-center justify-center shrink-0">
+                  <span className="text-white text-xl font-semibold">
+                    {user?.name
+                      .split(' ')
+                      .map(n => n[0])
+                      .slice(0, 2)
+                      .join('')
+                      .toUpperCase()}
+                  </span>
+                </div>
+                <div>
+                  <p className="text-lg font-semibold text-[#111111]">
+                    {user?.name}
+                  </p>
+                  <p className="text-xs text-[#7A9E7E] uppercase tracking-widest">
+                    {user?.role === 'ADMIN' ? 'Administrator' : 'Member'}
+                  </p>
+                </div>
               </div>
-              <div>
-                <p className="text-lg font-semibold text-[#111111]">
-                  {user?.name}
-                </p>
-                <p className="text-xs text-[#7A9E7E] uppercase tracking-widest">
-                  {user?.role === 'ADMIN' ? 'Administrator' : 'Member'}
-                </p>
-              </div>
+
+              {user?.role === 'ADMIN' && (
+                <Link
+                  href="/admin"
+                  className="shrink-0 bg-[#111111] text-white px-5 py-2.5 text-sm font-medium hover:bg-[#7A9E7E] transition-colors"
+                >
+                  Admin Mode
+                </Link>
+              )}
             </div>
 
             <div className="space-y-5">
