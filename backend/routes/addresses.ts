@@ -4,7 +4,6 @@ import { requireAuth, AuthRequest } from '../middleware/requireAuth'
 
 const router = Router()
 
-// POST /addresses - create a new address for the logged-in user
 router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
   console.log('userId:', req.userId)
   try {
@@ -35,7 +34,6 @@ router.post('/', requireAuth, async (req: AuthRequest, res: Response) => {
   }
 })
 
-// GET /addresses - list logged-in user's saved addresses
 router.get('/', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const addresses = await prisma.address.findMany({

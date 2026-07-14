@@ -4,7 +4,6 @@ import { requireAdmin, AuthRequest } from '../middleware/requireAuth'
 
 const router = Router()
 
-// All routes below require admin access
 router.use(requireAdmin)
 
 router.post('/products', async (req: AuthRequest, res: Response) => {
@@ -61,7 +60,6 @@ router.post('/products', async (req: AuthRequest, res: Response) => {
   }
 })
 
-// PATCH /admin/products/:id - edit a product (including inventory/stock)
 router.patch('/products/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params as { id: string }
@@ -79,7 +77,6 @@ router.patch('/products/:id', async (req: AuthRequest, res: Response) => {
   }
 })
 
-// DELETE /admin/products/:id
 router.delete('/products/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params as { id: string }
@@ -91,9 +88,6 @@ router.delete('/products/:id', async (req: AuthRequest, res: Response) => {
   }
 })
 
-// ─── ORDERS ───
-
-// GET /admin/orders - view all orders across all users
 router.get('/orders', async (req: AuthRequest, res: Response) => {
   try {
     const orders = await prisma.order.findMany({
@@ -112,7 +106,6 @@ router.get('/orders', async (req: AuthRequest, res: Response) => {
   }
 })
 
-// PATCH /admin/orders/:id - update order status
 router.patch('/orders/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params as { id: string }
@@ -141,9 +134,6 @@ router.patch('/orders/:id', async (req: AuthRequest, res: Response) => {
   }
 })
 
-// ─── SALES REPORT ───
-
-// GET /admin/reports/sales - basic sales summary
 router.get('/reports/sales', async (req: AuthRequest, res: Response) => {
   try {
     const orders = await prisma.order.findMany({

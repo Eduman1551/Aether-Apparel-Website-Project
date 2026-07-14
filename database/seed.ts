@@ -249,7 +249,6 @@ async function main() {
     }
   })
 
-  // Promo Code
   await prisma.promoCode.create({
     data: {
       code: 'WELCOME20',
