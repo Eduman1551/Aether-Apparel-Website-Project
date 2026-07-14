@@ -68,7 +68,6 @@ export default function AdminDashboard({ user }: { user?: AppUser }) {
           Overview of store performance
         </p>
 
-        {/* Nav */}
         <div className="flex gap-4 mb-10 border-b border-[#e5e5e5] pb-4">
           <Link
             href="/admin"
@@ -90,7 +89,6 @@ export default function AdminDashboard({ user }: { user?: AppUser }) {
           </Link>
         </div>
 
-        {/* Stats */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
           <div className="border border-[#e5e5e5] p-6">
             <p className="text-xs text-[#999] uppercase tracking-widest mb-2">
@@ -110,7 +108,6 @@ export default function AdminDashboard({ user }: { user?: AppUser }) {
           </div>
         </div>
 
-        {/* Top Products */}
         <div>
           <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-4">
             Top Selling Products

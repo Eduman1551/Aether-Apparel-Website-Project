@@ -71,7 +71,6 @@ export default function ProductDetailPage({
 
     const fetchProduct = async () => {
       setLoading(true)
-      // Reset selections when navigating to a different product
       setSelectedSize('')
       setSelectedColor('')
       setQuantity(1)
@@ -98,7 +97,6 @@ export default function ProductDetailPage({
   const handleAddToCart = async () => {
     if (!product) return
 
-    // Validate selections before calling the API
     if (!selectedSize && !selectedColor) {
       setValidationError('Please select a size and color')
       return
@@ -149,8 +147,6 @@ export default function ProductDetailPage({
       setAddingToCart(false)
     }
   }
-
-  // ── Loading skeleton ──
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-10 md:py-14">
@@ -222,7 +218,6 @@ export default function ProductDetailPage({
 
   return (
     <>
-      {/* Toasts */}
       <div className="fixed top-20 right-5 z-100 flex flex-col gap-2.5 pointer-events-none">
         {toasts.map(toast => (
           <div
@@ -284,7 +279,7 @@ export default function ProductDetailPage({
       </div>
 
       <div className="max-w-7xl mx-auto px-5 sm:px-8 lg:px-12 py-10 md:py-14">
-        {/* Breadcrumb */}
+
         <nav className="mb-8 flex items-center gap-2 text-xs text-[#999]">
           <Link href="/" className="hover:text-[#7A9E7E] transition-colors">
             Home
@@ -331,9 +326,7 @@ export default function ProductDetailPage({
         </nav>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-10 lg:gap-16">
-          {/* ── Images ── */}
           <div className='h-150'>
-            {/* Main image */}
             <div className="relative aspect-3/4 bg-[#F5F5F5] rounded-sm mb-4 overflow-hidden group">
               {product.images?.[selectedImage] && (
                 <Image
@@ -358,8 +351,6 @@ export default function ProductDetailPage({
                 )}
               </div>
             </div>
-
-            {/* Thumbnails */}
             {product.images.length > 1 && (
               <div className="flex gap-3">
                 {product.images.map((img, i) => (
@@ -385,8 +376,6 @@ export default function ProductDetailPage({
               </div>
             )}
           </div>
-
-          {/* ── Product Details ── */}
           <div>
             {product.gender && (
               <p className="text-[11px] font-medium text-[#7A9E7E] tracking-[0.25em] uppercase mb-2">
@@ -397,8 +386,6 @@ export default function ProductDetailPage({
             <h1 className="text-2xl md:text-[1.75rem] font-semibold text-[#111111] leading-snug tracking-wide">
               {product.name}
             </h1>
-
-            {/* Rating */}
             {product.reviews.length > 0 && (
               <div className="flex items-center gap-2 mt-3">
                 <span className="text-[#7A9E7E] text-sm tracking-tight">
@@ -413,8 +400,6 @@ export default function ProductDetailPage({
                 </span>
               </div>
             )}
-
-            {/* Price */}
             <div className="flex items-center gap-3 mt-5">
               <span className="text-2xl font-semibold text-[#111111]">
                 ₹{finalPrice.toFixed(0)}
@@ -430,8 +415,6 @@ export default function ProductDetailPage({
                 </>
               )}
             </div>
-
-            {/* Stock */}
             <div className="flex items-center gap-1.5 mt-3">
               <span
                 className={`w-1.5 h-1.5 rounded-full ${
@@ -460,8 +443,6 @@ export default function ProductDetailPage({
             </div>
 
             <div className="h-px bg-[#f0f0f0] my-6" />
-
-            {/* Color Selection */}
             <div>
               <p className="text-sm font-medium text-[#111111] mb-3">
                 Color
@@ -494,8 +475,6 @@ export default function ProductDetailPage({
                 ))}
               </div>
             </div>
-
-            {/* Size Selection */}
             <div className="mt-6">
               <p className="text-sm font-medium text-[#111111] mb-3">Size</p>
               <div className="flex flex-wrap gap-2.5">
@@ -517,8 +496,6 @@ export default function ProductDetailPage({
                 ))}
               </div>
             </div>
-
-            {/* Quantity */}
             <div className="mt-6">
               <p className="text-sm font-medium text-[#111111] mb-3">
                 Quantity
@@ -545,8 +522,6 @@ export default function ProductDetailPage({
                 </button>
               </div>
             </div>
-
-            {/* Validation Error */}
             {validationError && (
               <p className="flex items-center gap-1.5 text-xs text-red-500 mt-4">
                 <svg
@@ -563,8 +538,6 @@ export default function ProductDetailPage({
                 {validationError}
               </p>
             )}
-
-            {/* Add to Cart Button */}
             <button
               onClick={handleAddToCart}
               disabled={product.stock === 0 || addingToCart}
@@ -591,8 +564,6 @@ export default function ProductDetailPage({
                 'Add to Cart'
               )}
             </button>
-
-            {/* Trust badges */}
             <div className="grid grid-cols-3 gap-2 mt-5 text-center">
               <div className="flex flex-col items-center gap-1.5 py-3 border border-[#f0f0f0] rounded-sm">
                 <svg
@@ -651,8 +622,6 @@ export default function ProductDetailPage({
                 </span>
               </div>
             </div>
-
-            {/* Product Info Accordions */}
             <div className="mt-8 divide-y divide-[#f0f0f0] border-t border-[#f0f0f0]">
               {infoSections.map(info => {
                 const isOpen = openInfo === info.label
@@ -700,8 +669,6 @@ export default function ProductDetailPage({
             </div>
           </div>
         </div>
-
-        {/* ── Reviews ── */}
         <div className="mt-20 max-w-2xl">
           <h2 className="text-xl font-semibold text-[#111111] mb-6">
             Customer Reviews
@@ -748,8 +715,6 @@ export default function ProductDetailPage({
             </div>
           )}
         </div>
-
-        {/* ── Related Products ── */}
         {related.length > 0 && (
           <div className="mt-20">
             <h2 className="text-xl font-semibold text-[#111111] mb-8">

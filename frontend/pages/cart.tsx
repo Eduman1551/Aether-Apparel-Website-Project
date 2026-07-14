@@ -33,7 +33,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
   const [promoCode, setPromoCode] = useState('')
   const [promoError, setPromoError] = useState('')
 
-  // Redirect to login if not authenticated
   useEffect(() => {
     if (user === null) {
       router.replace('/login')
@@ -111,7 +110,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
     }
   }
 
-  // Derived totals (shipping logic mirrors backend: free over ₹999)
   const subtotal = cartItems.reduce((sum, item) => {
     const itemPrice = item.product.price - item.product.discount
     return sum + itemPrice * item.quantity
@@ -119,16 +117,14 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
   const shipping = subtotal > 0 && subtotal <= 999 ? 99 : 0
   const total = subtotal + shipping
 
-  if (user === null) return null // prevent flash before redirect
+  if (user === null) return null 
 
   return (
     <main className="bg-white min-h-screen">
-      {/* Page Header */}
       <div className="max-w-7xl mx-auto px-6 md:px-10 pt-10 pb-6">
         <h1 className="text-2xl md:text-3xl font-semibold text-[#111111] tracking-wide">
           Shopping Cart
         </h1>
-        {/* Breadcrumb */}
         <nav className="mt-2 flex items-center gap-2 text-xs text-[#999]">
           <Link href="/" className="hover:text-[#7A9E7E] transition-colors">
             Home
@@ -140,7 +136,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
 
       <div className="max-w-7xl mx-auto px-6 md:px-10 pb-20">
         {loading ? (
-          /* Skeleton Loader */
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
             <div className="lg:col-span-2 space-y-6">
               {[1, 2, 3].map(n => (
@@ -160,7 +155,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
             <div className="h-64 bg-[#F5F5F5] rounded-sm animate-pulse" />
           </div>
         ) : cartItems.length === 0 ? (
-          /* Empty State */
           <div className="flex flex-col items-center justify-center py-28 text-center">
             <svg
               width="56"
@@ -191,7 +185,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
           </div>
         ) : (
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-            {/* Cart Items */}
             <div className="lg:col-span-2">
               <div className="hidden md:grid grid-cols-12 text-xs text-[#999] uppercase tracking-widest pb-3 border-b border-[#e5e5e5] mb-1">
                 <span className="col-span-6">Product</span>
@@ -212,7 +205,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                         isUpdating ? 'opacity-50' : 'opacity-100'
                       }`}
                     >
-                      {/* Product Info */}
                       <div className="md:col-span-6 flex gap-4">
                         <Link
                           href={`/products/${item.productId}`}
@@ -236,7 +228,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                             >
                               {item.product.name}
                             </Link>
-                            {/* Mobile: show size/color below name */}
                             <p className="text-xs text-[#999] mt-1 md:hidden">
                               {item.size} · {item.color}
                             </p>
@@ -255,8 +246,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                           </button>
                         </div>
                       </div>
-
-                      {/* Size / Color — desktop */}
                       <div className="hidden md:flex md:col-span-2 flex-col items-center gap-1">
                         <span className="text-xs text-[#555] border border-[#e0e0e0] px-2 py-0.5">
                           {item.size}
@@ -265,8 +254,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                           {item.color}
                         </span>
                       </div>
-
-                      {/* Quantity */}
                       <div className="md:col-span-2 flex items-center justify-start md:justify-center gap-2">
                         <button
                           onClick={() =>
@@ -290,8 +277,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                           +
                         </button>
                       </div>
-
-                      {/* Line Total */}
                       <div className="md:col-span-2 flex items-center justify-start md:justify-end">
                         <span className="text-sm font-medium text-[#111111]">
                           ₹{(itemPrice * item.quantity).toFixed(0)}
@@ -301,8 +286,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                   )
                 })}
               </div>
-
-              {/* Continue Shopping */}
               <div className="mt-6">
                 <Link
                   href="/products"
@@ -325,8 +308,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                 </Link>
               </div>
             </div>
-
-            {/* Order Summary */}
             <div className="lg:col-span-1">
               <div className="bg-[#F5F5F5] p-6">
                 <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-6">
@@ -360,8 +341,6 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                     </p>
                   )}
                 </div>
-
-                {/* Promo Code */}
                 <div className="mt-6">
                   <p className="text-xs text-[#111111] font-medium mb-2 uppercase tracking-widest">
                     Promo Code

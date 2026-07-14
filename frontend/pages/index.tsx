@@ -6,7 +6,7 @@ export default function HomePage() {
   const [email, setEmail] = useState('')
   const [subscribed, setSubscribed] = useState(false)
 
-  const handleSubscribe = (e: React.FormEvent) => {
+  const handleSubscribe = (e: React.SyntheticEvent) => {
     e.preventDefault()
     if (!email) return
     setSubscribed(true)

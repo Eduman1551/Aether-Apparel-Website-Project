@@ -117,7 +117,6 @@ const TEAM = [
 export default function AboutPage() {
   return (
     <div className="bg-white">
-      {/* Hero */}
       <div className="relative h-[70vh] min-h-120 w-full overflow-hidden bg-[#111111]">
         <Image
           src="https://images.unsplash.com/photo-1441984904996-e0b6ba687e04?w=1800&h=1200&fit=crop&q=80"
@@ -138,7 +137,6 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* Intro / Story */}
       <div className="max-w-300 mx-auto px-6 md:px-10 py-20 grid grid-cols-1 lg:grid-cols-2 gap-14 items-center">
         <div className="order-2 lg:order-1">
           <p className="text-xs text-[#7A9E7E] font-semibold tracking-[0.25em] uppercase mb-4">
@@ -194,7 +192,6 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="border-y border-[#e5e5e5] bg-[#F9F9F7]">
         <div className="max-w-300 mx-auto px-6 md:px-10 py-14 grid grid-cols-2 md:grid-cols-4 gap-8">
           {STATS.map(stat => (
@@ -210,7 +207,6 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* Values */}
       <div className="max-w-300 mx-auto px-6 md:px-10 py-20">
         <div className="text-center max-w-xl mx-auto mb-14">
           <p className="text-xs text-[#7A9E7E] font-semibold tracking-[0.25em] uppercase mb-3">
@@ -241,7 +237,6 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* Full-width banner */}
       <div className="relative h-105 w-full overflow-hidden">
         <Image
           src="https://images.unsplash.com/photo-1445205170230-053b83016050?w=1800&h=900&fit=crop&q=80"
@@ -264,7 +259,6 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* Team */}
       <div className="max-w-300 mx-auto px-6 md:px-10 py-20">
         <div className="text-center max-w-xl mx-auto mb-14">
           <p className="text-xs text-[#7A9E7E] font-semibold tracking-[0.25em] uppercase mb-3">
@@ -296,7 +290,6 @@ export default function AboutPage() {
         </div>
       </div>
 
-      {/* CTA */}
       <div className="bg-[#111111]">
         <div className="max-w-300 mx-auto px-6 md:px-10 py-20 text-center">
           <h2 className="text-2xl md:text-3xl font-semibold text-white tracking-wide mb-4">

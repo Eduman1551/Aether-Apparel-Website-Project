@@ -71,7 +71,12 @@ export default function ProfilePage({ user }: ProfilePageProps) {
   const [activeTab, setActiveTab] = useState<'account' | 'orders'>('account')
   const [expandedOrder, setExpandedOrder] = useState<string | null>(null)
 
-  // Redirect if not logged in
+  const [phone, setPhone] = useState(user?.phone || '')
+  const [addingPhone, setAddingPhone] = useState(false)
+  const [phoneInput, setPhoneInput] = useState('')
+  const [phoneError, setPhoneError] = useState('')
+  const [phoneSubmitting, setPhoneSubmitting] = useState(false)
+
   useEffect(() => {
     if (user === null) {
       router.replace('/login')
@@ -101,16 +106,49 @@ export default function ProfilePage({ user }: ProfilePageProps) {
     fetchOrders()
   }, [user])
 
-  if (user === null) return null // prevent flash before redirect
+  const handleAddPhone = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setPhoneError('')
+
+    if (!phoneInput.trim()) {
+      setPhoneError('Please enter a phone number.')
+      return
+    }
+
+    setPhoneSubmitting(true)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/users/me`, {
+        method: 'PATCH',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: phoneInput.trim() })
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setPhoneError(data.message || 'Failed to update phone number')
+        return
+      }
+
+      setPhone(data.user.phone)
+      setAddingPhone(false)
+      setPhoneInput('')
+    } catch{
+      setPhoneError('Something went wrong. Please try again.')
+    } finally {
+      setPhoneSubmitting(false)
+    }
+  }
+
+  if (user === null) return null
 
   return (
     <main className="bg-white min-h-screen">
-      {/* Page Header */}
       <div className="max-w-5xl mx-auto px-6 md:px-10 pt-10 pb-6">
         <h1 className="text-2xl md:text-3xl font-semibold text-[#111111] tracking-wide">
           My Account
         </h1>
-        {/* Breadcrumb */}
         <nav className="mt-2 flex items-center gap-2 text-xs text-[#999]">
           <Link href="/" className="hover:text-[#7A9E7E] transition-colors">
             Home
@@ -121,12 +159,14 @@ export default function ProfilePage({ user }: ProfilePageProps) {
       </div>
 
       <div className="max-w-5xl mx-auto px-6 md:px-10 pb-20">
-        {/* Tabs */}
         <div className="flex border-b border-[#e5e5e5] mb-10">
           {(
             [
               { key: 'account', label: 'Account Details' },
-              { key: 'orders', label: `My Orders${orders.length > 0 ? ` (${orders.length})` : ''}` }
+              {
+                key: 'orders',
+                label: `My Orders${orders.length > 0 ? ` (${orders.length})` : ''}`
+              }
             ] as const
           ).map(tab => (
             <button
@@ -143,10 +183,8 @@ export default function ProfilePage({ user }: ProfilePageProps) {
           ))}
         </div>
 
-        {/* ── Account Details Tab ── */}
         {activeTab === 'account' && (
           <div className="max-w-md">
-            {/* Avatar / Initials */}
             <div className="flex items-center gap-5 mb-10">
               <div className="w-16 h-16 rounded-full bg-[#111111] flex items-center justify-center shrink-0">
                 <span className="text-white text-xl font-semibold">
@@ -168,30 +206,78 @@ export default function ProfilePage({ user }: ProfilePageProps) {
               </div>
             </div>
 
-            {/* Details Fields */}
             <div className="space-y-5">
-              {[
-                { label: 'Full Name', value: user?.name },
-                { label: 'Email Address', value: user?.email },
-                {
-                  label: 'Phone Number',
-                  value: user?.phone || '—'
-                },
-                {
-                  label: 'Account Type',
-                  value: user?.role === 'ADMIN' ? 'Administrator' : 'Customer'
-                }
-              ].map(field => (
-                <div
-                  key={field.label}
-                  className="border-b border-[#f0f0f0] pb-5"
-                >
-                  <p className="text-xs text-[#999] uppercase tracking-widest mb-1">
-                    {field.label}
-                  </p>
-                  <p className="text-sm text-[#111111]">{field.value}</p>
-                </div>
-              ))}
+              <div className="border-b border-[#f0f0f0] pb-5">
+                <p className="text-xs text-[#999] uppercase tracking-widest mb-1">
+                  Full Name
+                </p>
+                <p className="text-sm text-[#111111]">{user?.name}</p>
+              </div>
+
+              <div className="border-b border-[#f0f0f0] pb-5">
+                <p className="text-xs text-[#999] uppercase tracking-widest mb-1">
+                  Email Address
+                </p>
+                <p className="text-sm text-[#111111]">{user?.email}</p>
+              </div>
+
+              <div className="border-b border-[#f0f0f0] pb-5">
+                <p className="text-xs text-[#999] uppercase tracking-widest mb-1">
+                  Phone Number
+                </p>
+                {phone ? (
+                  <p className="text-sm text-[#111111]">{phone}</p>
+                ) : addingPhone ? (
+                  <form onSubmit={handleAddPhone} className="mt-2 space-y-2">
+                    <div className="flex gap-2">
+                      <input
+                        type="tel"
+                        value={phoneInput}
+                        onChange={e => setPhoneInput(e.target.value)}
+                        placeholder="Enter phone number"
+                        className="flex-1 border border-[#e0e0e0] px-3 py-2 text-sm focus:outline-none focus:border-[#7A9E7E]"
+                      />
+                      <button
+                        type="submit"
+                        disabled={phoneSubmitting}
+                        className="bg-[#111111] text-white px-4 py-2 text-sm hover:bg-[#7A9E7E] transition-colors disabled:opacity-50"
+                      >
+                        {phoneSubmitting ? 'Saving...' : 'Save'}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setAddingPhone(false)
+                          setPhoneInput('')
+                          setPhoneError('')
+                        }}
+                        className="border border-[#e0e0e0] px-4 py-2 text-sm text-[#111111]"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                    {phoneError && (
+                      <p className="text-xs text-red-600">{phoneError}</p>
+                    )}
+                  </form>
+                ) : (
+                  <button
+                    onClick={() => setAddingPhone(true)}
+                    className="text-sm text-[#7A9E7E] hover:underline mt-1"
+                  >
+                    + Add Phone Number
+                  </button>
+                )}
+              </div>
+
+              <div className="border-b border-[#f0f0f0] pb-5">
+                <p className="text-xs text-[#999] uppercase tracking-widest mb-1">
+                  Account Type
+                </p>
+                <p className="text-sm text-[#111111]">
+                  {user?.role === 'ADMIN' ? 'Administrator' : 'Customer'}
+                </p>
+              </div>
             </div>
 
             <p className="mt-8 text-xs text-[#999]">
@@ -206,11 +292,9 @@ export default function ProfilePage({ user }: ProfilePageProps) {
           </div>
         )}
 
-        {/* ── Orders Tab ── */}
         {activeTab === 'orders' && (
           <div>
             {ordersLoading ? (
-              /* Skeleton */
               <div className="space-y-4">
                 {[1, 2, 3].map(n => (
                   <div
@@ -227,7 +311,6 @@ export default function ProfilePage({ user }: ProfilePageProps) {
                 ))}
               </div>
             ) : orders.length === 0 ? (
-              /* Empty State */
               <div className="flex flex-col items-center justify-center py-24 text-center">
                 <svg
                   width="52"
@@ -267,7 +350,6 @@ export default function ProfilePage({ user }: ProfilePageProps) {
                       key={order.id}
                       className="border border-[#e5e5e5] transition-shadow hover:shadow-sm"
                     >
-                      {/* Order Header Row */}
                       <button
                         onClick={() =>
                           setExpandedOrder(isExpanded ? null : order.id)
@@ -304,18 +386,13 @@ export default function ProfilePage({ user }: ProfilePageProps) {
                             strokeWidth="1.5"
                             className={`transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}
                           >
-                            <path
-                              strokeLinecap="round"
-                              d="M19 9l-7 7-7-7"
-                            />
+                            <path strokeLinecap="round" d="M19 9l-7 7-7-7" />
                           </svg>
                         </div>
                       </button>
 
-                      {/* Expanded Order Details */}
                       {isExpanded && (
                         <div className="border-t border-[#f0f0f0] px-6 pb-6 pt-5">
-                          {/* Items */}
                           <div className="space-y-4 mb-6">
                             {order.items.map(item => (
                               <div
@@ -348,7 +425,6 @@ export default function ProfilePage({ user }: ProfilePageProps) {
                             ))}
                           </div>
 
-                          {/* Delivery Address */}
                           {order.address && (
                             <div className="mb-5">
                               <p className="text-xs text-[#999] uppercase tracking-widest mb-1">
@@ -356,8 +432,7 @@ export default function ProfilePage({ user }: ProfilePageProps) {
                               </p>
                               <p className="text-sm text-[#555]">
                                 {order.address.street}, {order.address.city},{' '}
-                                {order.address.state} —{' '}
-                                {order.address.pinCode}
+                                {order.address.state} — {order.address.pinCode}
                               </p>
                               <p className="text-xs text-[#999] mt-0.5">
                                 Ph: {order.address.phone}
@@ -365,7 +440,6 @@ export default function ProfilePage({ user }: ProfilePageProps) {
                             </div>
                           )}
 
-                          {/* Price Breakdown */}
                           <div className="bg-[#F5F5F5] p-4 text-sm space-y-2">
                             <div className="flex justify-between text-[#555]">
                               <span>Subtotal</span>

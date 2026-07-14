@@ -45,7 +45,13 @@ router.post('/register', async (req, res) => {
     res.cookie(COOKIE_NAME, token, cookieOptions)
 
     return res.status(201).json({
-      user: { id: user.id, name: user.name, email: user.email }
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role
+      }
     })
   } catch (error) {
     console.error('Register error:', error)
