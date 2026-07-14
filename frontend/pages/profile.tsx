@@ -106,7 +106,7 @@ export default function ProfilePage({ user }: ProfilePageProps) {
     fetchOrders()
   }, [user])
 
-  const handleAddPhone = async (e: React.FormEvent) => {
+  const handleAddPhone = async (e: React.SyntheticEvent) => {
     e.preventDefault()
     setPhoneError('')
 

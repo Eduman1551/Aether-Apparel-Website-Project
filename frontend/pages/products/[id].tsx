@@ -46,10 +46,12 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
 
-  // --- Cart state ---
+  // Cart states
   const [cartError, setCartError] = useState('')
   const [cartAdding, setCartAdding] = useState(false)
-  const [cartAdded, setCartAdded] = useState(false)
+
+  // Toast state
+  const [toast, setToast] = useState<string | null>(null)
 
   const fetchProduct = async () => {
     setLoading(true)
@@ -69,9 +71,16 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
 
   useEffect(() => {
     if (!id) return
-    // eslint-disable-next-line react-hooks/set-state-in-effect
+    // eslint-disable-next-line
     fetchProduct()
   }, [id])
+
+  // Auto-dismiss toast after 3 seconds
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(timer)
+  }, [toast])
 
   const handleReviewSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -136,11 +145,15 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
     }
   }
 
-  // --- Add to Cart handler ---
+  // Add to Cart handler
   const handleAddToCart = async () => {
-    setCartError('')
-    setCartAdded(false)
+    // Redirect if not logged in
+    if (!user) {
+      router.push('/login')
+      return
+    }
 
+    setCartError('')
     if (!product) return
 
     if (product.sizes.length > 0 && !selectedSize) {
@@ -178,7 +191,8 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
         return
       }
 
-      setCartAdded(true)
+      // Success → show toast
+      setToast(`${product.name} added to cart!`)
     } catch {
       setCartError('Something went wrong. Please try again.')
     } finally {
@@ -211,6 +225,21 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
+      {/* ===== TOAST ===== */}
+      {toast && (
+        <div
+          className="
+            fixed top-6 right-6 z-50
+            bg-[#7A9E7E] text-white px-6 py-3
+            rounded shadow-lg
+            text-sm font-medium
+            animate-[fadeIn_0.3s_ease-out]
+          "
+        >
+          {toast}
+        </div>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr] gap-10">
         <div className="md:sticky md:top-24 self-start">
           <div className="relative aspect-4/5 bg-[#F5F5F5] mb-3">
@@ -353,9 +382,6 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
 
           {cartError && (
             <p className="text-sm text-red-600 mt-3">{cartError}</p>
-          )}
-          {cartAdded && (
-            <p className="text-sm text-[#7A9E7E] mt-3">Added to your cart.</p>
           )}
 
           <button
