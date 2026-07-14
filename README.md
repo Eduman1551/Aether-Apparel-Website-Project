@@ -113,7 +113,7 @@ The app will run on `http://localhost:3000`.
 | Role | Email | Password |
 |---|---|---|
 | Admin | admin@aetherapparel.com | password123 |
-| Customer | aarav@example.com | password123 |
+| Customer | john@example.com | password123 |
 
 ## Notes
 
