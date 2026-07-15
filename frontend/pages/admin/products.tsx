@@ -65,6 +65,12 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
   const [customColor, setCustomColor] = useState('')
   const [error, setError] = useState('')
 
+  // ── AI Add state ──
+  const [showAiModal, setShowAiModal] = useState(false)
+  const [aiPrompt, setAiPrompt] = useState('')
+  const [aiLoading, setAiLoading] = useState(false)
+  const [aiError, setAiError] = useState('')
+
   const fetchProducts = async () => {
     try {
       const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/products`)
@@ -244,6 +250,57 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
     fetchProducts()
   }
 
+  // ── AI Add handlers ──
+  const resetAiModal = () => {
+    setAiPrompt('')
+    setAiError('')
+    setAiLoading(false)
+    setShowAiModal(false)
+  }
+
+  const handleAiSubmit = async (e: React.SyntheticEvent) => {
+    e.preventDefault()
+    setAiError('')
+
+    if (aiPrompt.trim().length < 5) {
+      setAiError('Describe the product in a sentence or two.')
+      return
+    }
+
+    setAiLoading(true)
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/products/ai-create`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ prompt: aiPrompt })
+        }
+      )
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setAiError(data.message || 'Failed to create product')
+        setAiLoading(false)
+        return
+      }
+
+      await fetchProducts()
+      resetAiModal()
+
+      // The AI can't invent real image URLs, so drop straight into Edit
+      // so the admin can add photos right away.
+      if (data.product) {
+        startEdit(data.product)
+      }
+    } catch {
+      setAiError('Something went wrong.')
+      setAiLoading(false)
+    }
+  }
+
   if (!user || loading) {
     return (
       <div className="max-w-6xl mx-auto px-6 py-16 text-sm text-[#555]">
@@ -293,15 +350,27 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
           <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest">
             Products ({products.length})
           </h2>
-          <button
-            onClick={() => {
-              resetForm()
-              setShowForm(true)
-            }}
-            className="bg-[#111111] text-white px-5 py-2.5 text-sm hover:bg-[#7A9E7E] transition-colors"
-          >
-            + Add Product
-          </button>
+          <div className="flex gap-3">
+            <button
+              onClick={() => {
+                setAiError('')
+                setAiPrompt('')
+                setShowAiModal(true)
+              }}
+              className="border border-[#7A9E7E] text-[#7A9E7E] px-5 py-2.5 text-sm hover:bg-[#7A9E7E] hover:text-white transition-colors"
+            >
+              ✨ Add with AI
+            </button>
+            <button
+              onClick={() => {
+                resetForm()
+                setShowForm(true)
+              }}
+              className="bg-[#111111] text-white px-5 py-2.5 text-sm hover:bg-[#7A9E7E] transition-colors"
+            >
+              + Add Product
+            </button>
+          </div>
         </div>
 
         {/* Products List */}
@@ -350,6 +419,64 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
           ))}
         </div>
       </div>
+
+      {/* ── AI Add Modal ── */}
+      {showAiModal && (
+        <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center overflow-y-auto py-10 px-4">
+          <div className="bg-white w-full max-w-lg shadow-xl">
+            <div className="flex items-center justify-between border-b border-[#e5e5e5] px-8 py-5">
+              <h2 className="text-lg font-semibold text-[#111111]">
+                ✨ Add Product with AI
+              </h2>
+              <button
+                onClick={resetAiModal}
+                className="text-[#999] hover:text-[#111111] text-xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+
+            <form onSubmit={handleAiSubmit} className="px-8 py-6 space-y-4">
+              <div>
+                <label className="block text-xs text-[#555] mb-1">
+                  Describe the product
+                </label>
+                <textarea
+                  value={aiPrompt}
+                  onChange={e => setAiPrompt(e.target.value)}
+                  rows={4}
+                  placeholder="e.g. Black cotton oversized hoodie for men, sizes M/L/XL, ₹2499, 20 in stock, goes in the Outerwear category"
+                  className="w-full border border-[#e0e0e0] px-3 py-2.5 text-sm focus:outline-none focus:border-[#7A9E7E]"
+                />
+                <p className="text-xs text-[#999] mt-1.5">
+                  The AI will pick the closest existing category and fill in the
+                  rest. You&apos;ll still need to add photos afterward.
+                </p>
+              </div>
+
+              {aiError && <p className="text-sm text-red-600">{aiError}</p>}
+
+              <div className="flex gap-3 pt-2">
+                <button
+                  type="submit"
+                  disabled={aiLoading}
+                  className="flex-1 bg-[#111111] text-white py-3 text-sm font-medium hover:bg-[#7A9E7E] transition-colors disabled:opacity-50"
+                >
+                  {aiLoading ? 'Generating...' : 'Generate & Add'}
+                </button>
+                <button
+                  type="button"
+                  onClick={resetAiModal}
+                  disabled={aiLoading}
+                  className="flex-1 border border-[#e0e0e0] py-3 text-sm text-[#111111] hover:border-[#111111]"
+                >
+                  Cancel
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
 
       {/* ── Modal Form ── */}
       {showForm && (
