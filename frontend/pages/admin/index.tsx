@@ -87,6 +87,12 @@ export default function AdminDashboard({ user }: { user?: AppUser }) {
           >
             Orders
           </Link>
+          <Link
+            href="/admin/banners"
+            className="text-sm text-[#555] hover:text-[#111111]"
+          >
+            Banners
+          </Link>
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">

@@ -103,6 +103,12 @@ export default function AdminOrdersPage({ user }: { user?: AppUser }) {
           >
             Orders
           </Link>
+          <Link
+            href="/admin/banners"
+            className="text-sm text-[#555] hover:text-[#111111]"
+          >
+            Banners
+          </Link>
         </div>
 
         <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-6">

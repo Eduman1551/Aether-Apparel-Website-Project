@@ -4,9 +4,10 @@ import Link from 'next/link'
 
 type LoginPageProps = {
   setUser?: (user: unknown) => void
+  refreshCartCount?: () => Promise<void>
 }
 
-export default function LoginPage({ setUser }: LoginPageProps) {
+export default function LoginPage({ setUser, refreshCartCount }: LoginPageProps) {
   const router = useRouter()
   const [form, setForm] = useState({ email: '', password: '' })
   const [error, setError] = useState('')
@@ -42,6 +43,7 @@ export default function LoginPage({ setUser }: LoginPageProps) {
       if (setUser) {
         setUser(data.user)
       }
+      await refreshCartCount?.()
       router.push('/products')
     } catch {
       setError('Something went wrong. Please try again.')

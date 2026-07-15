@@ -42,6 +42,16 @@ enum PaymentMethod {
   COD
 }
 
+model Banner {
+  id String @id @default(uuid())
+  title     String
+  subtitle  String?
+  ctaText String @default("Shop Now")
+  ctaLink   String   @default("/products")
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
 model User {
   id        String   @id @default(uuid())
   name      String

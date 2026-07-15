@@ -1,20 +1,36 @@
-import { useState } from 'react'
 import Image from 'next/image'
 import Link from 'next/link'
+import { useEffect, useState } from 'react'
+
+interface Banner {
+  id: string
+  title: string
+  subtitle: string | null
+  ctaText: string
+  ctaLink: string
+}
 
 export default function HomePage() {
-  const [email, setEmail] = useState('')
-  const [subscribed, setSubscribed] = useState(false)
+  const [banner, setBanner] = useState<Banner | null>(null)
 
-  const handleSubscribe = (e: React.SyntheticEvent) => {
-    e.preventDefault()
-    if (!email) return
-    setSubscribed(true)
-    setEmail('')
-  }
+  useEffect(() => {
+    const fetchBanner = async () => {
+      try {
+        const res = await fetch(
+          `${process.env.NEXT_PUBLIC_API_URL}/banners/active`
+        )
+        const data = await res.json()
+        setBanner(data.banner)
+      } catch (err) {
+        console.error('Failed to fetch banner', err)
+      }
+    }
+    fetchBanner()
+  }, [])
 
   return (
     <div className="bg-white">
+      {/* Hero Section */}
       <section className="relative h-[85vh] w-full overflow-hidden">
         <Image
           src="https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?w=1600&q=80"
@@ -40,6 +56,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Brand Statement */}
       <section className="max-w-3xl mx-auto text-center px-6 py-24">
         <h2 className="text-2xl md:text-3xl font-semibold text-[#111111] mb-4">
           Designed to feel effortless.
@@ -51,6 +68,7 @@ export default function HomePage() {
         </p>
       </section>
 
+      {/* Split Image Feature */}
       <section className="grid grid-cols-1 md:grid-cols-2">
         <div className="relative h-100 md:h-125">
           <Image
@@ -76,24 +94,27 @@ export default function HomePage() {
         </div>
       </section>
 
-      <section className="bg-[#F5F5F5] py-16 text-center px-6">
-        <p className="text-xs tracking-widest text-[#7A9E7E] mb-2 uppercase">
-          Limited Time
-        </p>
-        <h3 className="text-2xl md:text-3xl font-semibold text-[#111111] mb-4">
-          Flat 20% Off Sitewide
-        </h3>
-        <p className="text-sm text-[#555] mb-6">
-          No code needed. Discount applied automatically at checkout.
-        </p>
-        <Link
-          href="/products"
-          className="inline-block bg-[#111111] text-white px-8 py-3 text-sm font-medium hover:bg-[#7A9E7E] transition-colors"
-        >
-          Shop Now
-        </Link>
-      </section>
+      {banner && (
+        <section className="bg-[#F5F5F5] py-16 text-center px-6">
+          <p className="text-xs tracking-widest text-[#7A9E7E] mb-2 uppercase">
+            Limited Time
+          </p>
+          <h3 className="text-2xl md:text-3xl font-semibold text-[#111111] mb-4">
+            {banner.title}
+          </h3>
+          {banner.subtitle && (
+            <p className="text-sm text-[#555] mb-6">{banner.subtitle}</p>
+          )}
+          <Link
+            href={banner.ctaLink}
+            className="inline-block bg-[#111111] text-white px-8 py-3 text-sm font-medium hover:bg-[#7A9E7E] transition-colors"
+          >
+            {banner.ctaText}
+          </Link>
+        </section>
+      )}
 
+      {/* Testimonials */}
       <section className="max-w-5xl mx-auto px-6 py-24">
         <h2 className="text-center text-2xl font-semibold text-[#111111] mb-12">
           What Our Customers Say
@@ -101,21 +122,21 @@ export default function HomePage() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-10">
           {[
             {
-              name: 'Manny T.',
+              name: 'Ananya R.',
               text: 'The quality feels premium and the fit is exactly what I look for in casual wear.'
             },
             {
-              name: 'Catherine S.',
+              name: 'Kabir S.',
               text: 'Clean designs, comfortable fabric — my go-to brand for everyday outfits now.'
             },
             {
-              name: 'Melia W.',
+              name: 'Meera T.',
               text: 'Simple, minimal, and exactly as described. Delivery was quick too.'
             }
           ].map(t => (
             <div key={t.name} className="text-center px-4">
               <p className="text-sm text-[#555] italic mb-4">
-                &ldquo;{t.text}&rdquo;
+                &quot;{t.text}&quot;
               </p>
               <p className="text-sm font-medium text-[#111111]">{t.name}</p>
             </div>
@@ -123,6 +144,7 @@ export default function HomePage() {
         </div>
       </section>
 
+      {/* Newsletter */}
       <section className="bg-[#111111] py-16 px-6 text-center">
         <h3 className="text-white text-xl md:text-2xl font-semibold mb-3">
           Join the Aether Community
@@ -130,32 +152,19 @@ export default function HomePage() {
         <p className="text-white/70 text-sm mb-6">
           Get updates on new arrivals, sales, and exclusive drops.
         </p>
-
-        {subscribed ? (
-          <p className="text-[#7A9E7E] text-sm font-medium max-w-md mx-auto">
-            You will now receive messages regarding our products.
-          </p>
-        ) : (
-          <form
-            onSubmit={handleSubscribe}
-            className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto"
+        <form className="flex flex-col sm:flex-row items-center justify-center gap-3 max-w-md mx-auto">
+          <input
+            type="email"
+            placeholder="Enter your email"
+            className="w-full sm:w-auto flex-1 px-4 py-3 text-sm bg-white text-[#111111] focus:outline-none"
+          />
+          <button
+            type="submit"
+            className="bg-[#7A9E7E] text-white px-6 py-3 text-sm font-medium hover:bg-white hover:text-[#111111] transition-colors"
           >
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              placeholder="Enter your email"
-              className="w-full sm:w-auto flex-1 px-4 py-3 text-sm bg-white text-[#111111] focus:outline-none"
-            />
-            <button
-              type="submit"
-              className="bg-[#7A9E7E] text-white px-6 py-3 text-sm font-medium hover:bg-white hover:text-[#111111] transition-colors"
-            >
-              Subscribe
-            </button>
-          </form>
-        )}
+            Subscribe
+          </button>
+        </form>
       </section>
     </div>
   )

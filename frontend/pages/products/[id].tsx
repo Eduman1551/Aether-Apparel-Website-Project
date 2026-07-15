@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
-import { useRouter } from 'next/router'
-import Link from 'next/link'
 import Image from 'next/image'
+import Link from 'next/link'
+import { useRouter } from 'next/router'
+import { useEffect, useState } from 'react'
 
 interface Product {
   id: string
@@ -27,7 +27,13 @@ interface Product {
 
 type AppUser = { id: string; name: string; role: string } | null
 
-export default function ProductDetailPage({ user }: { user?: AppUser }) {
+export default function ProductDetailPage({
+  user,
+  refreshCartCount
+}: {
+  user?: AppUser
+  refreshCartCount?: () => Promise<void>
+}) {
   const router = useRouter()
   const { id } = router.query
 
@@ -193,6 +199,7 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
 
       // Success → show toast
       setToast(`${product.name} added to cart!`)
+      await refreshCartCount?.()
     } catch {
       setCartError('Something went wrong. Please try again.')
     } finally {
