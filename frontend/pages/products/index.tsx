@@ -14,6 +14,11 @@ interface Product {
   stock: number
 }
 
+interface Category {
+  id: string
+  name: string
+}
+
 const SORT_LABELS: Record<string, string> = {
   newest: 'Newest',
   price_asc: 'Price: Low to High',
@@ -23,11 +28,13 @@ const SORT_LABELS: Record<string, string> = {
 
 export default function ProductsPage() {
   const [products, setProducts] = useState<Product[]>([])
+  const [categories, setCategories] = useState<Category[]>([])
   const [loading, setLoading] = useState(true)
   const [filtersOpen, setFiltersOpen] = useState(false)
 
   const [filters, setFilters] = useState({
     search: '',
+    category: '',
     gender: '',
     minPrice: '',
     maxPrice: '',
@@ -36,6 +43,25 @@ export default function ProductsPage() {
   })
 
   useEffect(() => {
+    const fetchCategories = async () => {
+      try {
+        const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/categories`)
+        const data = await res.json()
+        const list: Category[] = data.categories || []
+        setCategories(list)
+        if (list.length > 0) {
+          setFilters(prev => ({ ...prev, category: list[0].name }))
+        }
+      } catch (err) {
+        console.error('Failed to fetch categories', err)
+      }
+    }
+    fetchCategories()
+  }, [])
+
+  useEffect(() => {
+    if (!filters.category) return
+
     const fetchProducts = async () => {
       setLoading(true)
       const params = new URLSearchParams()
@@ -64,14 +90,15 @@ export default function ProductsPage() {
   }
 
   const clearFilters = () => {
-    setFilters({
+    setFilters(prev => ({
       search: '',
+      category: prev.category,
       gender: '',
       minPrice: '',
       maxPrice: '',
       inStock: '',
       sort: 'newest'
-    })
+    }))
   }
 
   const activeChips: { key: string; label: string; clear: () => void }[] = []
@@ -105,14 +132,13 @@ export default function ProductsPage() {
 
   return (
     <div className="bg-white min-h-screen">
-      {/* Page Title */}
       <div className="max-w-[1600px] mx-auto px-5 sm:px-8 lg:px-12 pt-10 md:pt-14 pb-6">
         <p className="text-[11px] text-[#7A9E7E] font-medium tracking-[0.25em] uppercase mb-2">
           Collection
         </p>
         <div className="flex flex-wrap items-end justify-between gap-3">
           <h1 className="text-3xl sm:text-4xl md:text-[2.75rem] font-semibold text-[#111111] tracking-wide">
-            Shop All
+            {filters.category || 'Shop All'}
           </h1>
           {!loading && (
             <p className="text-sm text-[#999]">
@@ -122,12 +148,29 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Filter Bar */}
-      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-y border-[#e5e5e5]">
+      <div className="border-b border-[#e5e5e5]">
         <div className="max-w-[1600px] mx-auto px-5 sm:px-8 lg:px-12">
-          {/* Bar row */}
+          <div className="flex gap-6 overflow-x-auto no-scrollbar">
+            {categories.map(cat => (
+              <button
+                key={cat.id}
+                onClick={() => handleFilterChange('category', cat.name)}
+                className={`whitespace-nowrap text-sm py-3 border-b-2 transition-colors ${
+                  filters.category === cat.name
+                    ? 'border-[#111111] text-[#111111] font-medium'
+                    : 'border-transparent text-[#999] hover:text-[#111111]'
+                }`}
+              >
+                {cat.name}
+              </button>
+            ))}
+          </div>
+        </div>
+      </div>
+
+      <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-[#e5e5e5]">
+        <div className="max-w-[1600px] mx-auto px-5 sm:px-8 lg:px-12">
           <div className="flex items-center gap-3 py-3.5">
-            {/* Search - always visible */}
             <div className="relative flex-1 min-w-0 sm:flex-initial sm:w-64">
               <svg
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-[#aaa]"
@@ -150,7 +193,6 @@ export default function ProductsPage() {
               />
             </div>
 
-            {/* Desktop inline filters */}
             <div className="hidden md:flex items-center gap-3">
               <div className="relative">
                 <select
@@ -197,7 +239,6 @@ export default function ProductsPage() {
               </label>
             </div>
 
-            {/* Mobile filters toggle */}
             <button
               onClick={() => setFiltersOpen(v => !v)}
               className={`md:hidden relative flex items-center gap-1.5 text-sm border rounded-sm px-3 py-2.5 transition-colors ${
@@ -224,7 +265,6 @@ export default function ProductsPage() {
               )}
             </button>
 
-            {/* Sort - always visible, pushed right */}
             <div className="relative ml-auto shrink-0">
               <select
                 value={filters.sort}
@@ -241,7 +281,6 @@ export default function ProductsPage() {
             </div>
           </div>
 
-          {/* Mobile filter panel */}
           {filtersOpen && (
             <div className="md:hidden pb-4 flex flex-col gap-3">
               <div className="relative">
@@ -290,7 +329,6 @@ export default function ProductsPage() {
             </div>
           )}
 
-          {/* Active filter chips */}
           {activeChips.length > 0 && (
             <div className="flex flex-wrap items-center gap-2 pb-3.5">
               {activeChips.map(chip => (
@@ -324,7 +362,6 @@ export default function ProductsPage() {
         </div>
       </div>
 
-      {/* Product Grid */}
       <div className="max-w-[1600px] mx-auto px-5 sm:px-8 lg:px-12 py-10 md:py-14">
         {loading ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-x-6 gap-y-12 md:gap-x-8 md:gap-y-16">
@@ -380,7 +417,6 @@ export default function ProductsPage() {
                   href={`/products/${product.id}`}
                   className="group block"
                 >
-                  {/* Image */}
                   <div className="relative aspect-video  bg-[#F5F5F5] overflow-hidden rounded-sm mb-4">
                     {product.images?.[0] && (
                       <>
@@ -422,7 +458,6 @@ export default function ProductsPage() {
                       </span>
                     )}
 
-                    {/* Quick view overlay */}
                     <div className="absolute inset-x-0 bottom-0 translate-y-full group-hover:translate-y-0 transition-transform duration-300 ease-out">
                       <div className="bg-[#111111] text-center py-3 text-[11px] font-medium text-white tracking-[0.2em] uppercase">
                         View Product
@@ -430,7 +465,6 @@ export default function ProductsPage() {
                     </div>
                   </div>
 
-                  {/* Details */}
                   <div className="flex items-start justify-between gap-2 mb-1">
                     <span className="text-[10px] font-medium text-[#999] tracking-widest uppercase">
                       {product.gender}
