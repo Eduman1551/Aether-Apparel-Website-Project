@@ -43,10 +43,10 @@ enum PaymentMethod {
 }
 
 model Banner {
-  id String @id @default(uuid())
+  id        String   @id @default(uuid())
   title     String
   subtitle  String?
-  ctaText String @default("Shop Now")
+  ctaText   String   @default("Shop Now")
   ctaLink   String   @default("/products")
   isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
@@ -145,21 +145,23 @@ model PromoCode {
 }
 
 model Order {
-  id            String        @id @default(uuid())
-  userId        String
-  user          User          @relation(fields: [userId], references: [id])
-  addressId     String
-  address       Address       @relation(fields: [addressId], references: [id])
-  items         OrderItem[]
-  subtotal      Float
-  shipping      Float         @default(0)
-  discount      Float         @default(0)
-  total         Float
-  promoCodeId   String?
-  promoCode     PromoCode?    @relation(fields: [promoCodeId], references: [id])
-  paymentMethod PaymentMethod
-  status        OrderStatus   @default(PENDING)
-  createdAt     DateTime      @default(now())
+  id                String        @id @default(uuid())
+  userId            String
+  user              User          @relation(fields: [userId], references: [id])
+  addressId         String
+  address           Address       @relation(fields: [addressId], references: [id])
+  items             OrderItem[]
+  subtotal          Float
+  shipping          Float         @default(0)
+  discount          Float         @default(0)
+  total             Float
+  promoCodeId       String?
+  promoCode         PromoCode?    @relation(fields: [promoCodeId], references: [id])
+  paymentMethod     PaymentMethod
+  status            OrderStatus   @default(PENDING)
+  razorpayOrderId   String?       @unique
+  razorpayPaymentId String?
+  createdAt         DateTime      @default(now())
 }
 
 model OrderItem {

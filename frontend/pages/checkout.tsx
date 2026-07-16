@@ -1,7 +1,8 @@
+import { startRazorpayCheckout } from '@/lib/razorpay'
+import Image from 'next/image'
 import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
-import Image from 'next/image'
 
 /* ---------- Types ---------- */
 type CartProduct = {
@@ -141,6 +142,25 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
 
     setSubmitting(true)
 
+    // --- UPI: hand off to Razorpay, which creates + verifies the order itself ---
+    if (paymentMethod === 'UPI') {
+      startRazorpayCheckout({
+        addressId: selectedAddressId,
+        name: user?.name,
+        email: user?.email,
+        onSuccess: orderId => {
+          setSubmitting(false)
+          setSuccessOrderId(orderId)
+        },
+        onFailure: message => {
+          setSubmitting(false)
+          setError(message)
+        }
+      })
+      return
+    }
+
+    // --- COD: existing flow, unchanged ---
     try {
       const orderRes = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/orders`,
