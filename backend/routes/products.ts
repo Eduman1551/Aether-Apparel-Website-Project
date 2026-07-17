@@ -1,9 +1,9 @@
-import { Router } from 'express'
+import { Request, Response, Router } from 'express'
 import prisma from '../../database/prismaClient'
 
 const router = Router()
 
-router.get('/', async (req, res) => {
+router.get('/', async (req: Request, res: Response) => {
   try {
     const {
       category,
@@ -43,10 +43,38 @@ router.get('/', async (req, res) => {
       where.name = { contains: search as string, mode: 'insensitive' }
     }
 
-    let orderBy: any = { createdAt: 'desc' }
+    let orderBy: any = { createdAt: 'desc' } // default: newest
     if (sort === 'price_asc') orderBy = { price: 'asc' }
     if (sort === 'price_desc') orderBy = { price: 'desc' }
     if (sort === 'newest') orderBy = { createdAt: 'desc' }
+
+    if (sort === 'best_selling') {
+      const salesGrouped = await prisma.orderItem.groupBy({
+        by: ['productId'],
+        _sum: { quantity: true },
+        where: {
+          order: { status: { not: 'CANCELLED' } }
+        }
+      })
+
+      const salesMap = new Map<string, number>()
+      salesGrouped.forEach(row => {
+        salesMap.set(row.productId, row._sum.quantity || 0)
+      })
+
+      const products = await prisma.product.findMany({
+        where,
+        include: { category: true, reviews: true }
+      })
+
+      const sorted = products.sort((a, b) => {
+        const aSold = salesMap.get(a.id) || 0
+        const bSold = salesMap.get(b.id) || 0
+        return bSold - aSold
+      })
+
+      return res.status(200).json({ products: sorted })
+    }
 
     const products = await prisma.product.findMany({
       where,
@@ -61,9 +89,9 @@ router.get('/', async (req, res) => {
   }
 })
 
-router.get('/:id', async (req, res) => {
+router.get('/:id', async (req: Request, res: Response) => {
   try {
-    const { id } = req.params
+    const { id } = req.params as { id: string }
 
     const product = await prisma.product.findUnique({
       where: { id },
