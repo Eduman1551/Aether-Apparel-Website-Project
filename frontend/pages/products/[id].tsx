@@ -82,7 +82,7 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
     if (!id) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProduct()
-    // eslint-disable-next-line
+    // eslint-disable-next-line 
   }, [id])
 
   const handleReviewSubmit = async (e: React.SyntheticEvent) => {
@@ -227,22 +227,22 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
               />
             )}
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-3">
             {product.images.map((img, i) => (
               <button
                 key={i}
                 onClick={() => setSelectedImage(i)}
-                className={`relative w-14 h-70px bg-[#F5F5F5] border ${
+                className={`relative w-20 h-25 bg-[#F5F5F5] overflow-hidden shrink-0 transition-all ${
                   selectedImage === i
-                    ? 'border-[#111111]'
-                    : 'border-transparent'
+                    ? 'ring-2 ring-[#111111] ring-offset-2'
+                    : 'ring-1 ring-[#e0e0e0] hover:ring-[#111111] opacity-80 hover:opacity-100'
                 }`}
               >
                 <Image
                   src={img}
                   alt={`${product.name} ${i}`}
                   fill
-                  sizes="56px"
+                  sizes="80px"
                   className="object-cover"
                 />
               </button>
