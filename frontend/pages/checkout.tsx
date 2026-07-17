@@ -4,7 +4,6 @@ import Link from 'next/link'
 import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
 
-/* ---------- Types ---------- */
 type CartProduct = {
   id: string
   name: string
@@ -38,32 +37,38 @@ type CheckoutPageProps = {
   refreshCartCount?: () => Promise<void>
 }
 
-export default function CheckoutPage({ user, refreshCartCount }: CheckoutPageProps) {
+export default function CheckoutPage({
+  user,
+  refreshCartCount
+}: CheckoutPageProps) {
   const router = useRouter()
 
-  // Cart
   const [cartItems, setCartItems] = useState<CartItem[]>([])
   const [cartLoading, setCartLoading] = useState(true)
 
-  // Addresses
   const [addresses, setAddresses] = useState<Address[]>([])
   const [addressesLoading, setAddressesLoading] = useState(true)
   const [selectedAddressId, setSelectedAddressId] = useState<string>('')
 
-  // Payment & errors
   const [paymentMethod, setPaymentMethod] = useState<'UPI' | 'COD'>('COD')
   const [error, setError] = useState('')
   const [submitting, setSubmitting] = useState(false)
   const [successOrderId, setSuccessOrderId] = useState<string | null>(null)
 
-  // Redirect if not logged in
+  const [promoCode, setPromoCode] = useState('')
+  const [promoError, setPromoError] = useState('')
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string
+    discount: number
+  } | null>(null)
+  const [applyingPromo, setApplyingPromo] = useState(false)
+
   useEffect(() => {
     if (user === null) {
       router.replace('/login')
     }
   }, [user, router])
 
-  // Fetch cart
   useEffect(() => {
     if (!user) return
     const fetchCart = async () => {
@@ -85,7 +90,6 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
     fetchCart()
   }, [user])
 
-  // Fetch addresses
   useEffect(() => {
     if (!user) return
     const fetchAddresses = async () => {
@@ -101,7 +105,6 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
           const data = await res.json()
           const list: Address[] = data.addresses || []
           setAddresses(list)
-          // Auto‑select default address if available
           const defaultAddr = list.find(a => a.isDefault)
           if (defaultAddr) {
             setSelectedAddressId(defaultAddr.id)
@@ -118,15 +121,56 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
     fetchAddresses()
   }, [user])
 
-  // Calculations
   const subtotal = cartItems.reduce((sum, item) => {
     const price = item.product.price - item.product.discount
     return sum + price * item.quantity
   }, 0)
   const shipping = subtotal > 0 && subtotal <= 999 ? 99 : 0
-  const total = subtotal + shipping
+  const discount = appliedPromo?.discount || 0
+  const total = Math.max(subtotal + shipping - discount, 0)
 
-  // Place order
+  const applyPromoCode = async () => {
+    setPromoError('')
+
+    if (!promoCode.trim()) {
+      setPromoError('Enter a promo code')
+      return
+    }
+
+    setApplyingPromo(true)
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/promo-codes/validate`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: promoCode, subtotal })
+        }
+      )
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setPromoError(data.message || 'Invalid promo code')
+        setAppliedPromo(null)
+        return
+      }
+
+      setAppliedPromo({ code: data.code, discount: data.discount })
+    } catch (err) {
+      setPromoError('Something went wrong. Please try again.')
+    } finally {
+      setApplyingPromo(false)
+    }
+  }
+
+  const removePromo = () => {
+    setAppliedPromo(null)
+    setPromoCode('')
+    setPromoError('')
+  }
+
   const handleSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault()
     setError('')
@@ -143,10 +187,10 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
 
     setSubmitting(true)
 
-    // --- UPI: hand off to Razorpay, which creates + verifies the order itself ---
     if (paymentMethod === 'UPI') {
       startRazorpayCheckout({
         addressId: selectedAddressId,
+        promoCode: appliedPromo?.code,
         name: user?.name,
         email: user?.email,
         onSuccess: async orderId => {
@@ -162,7 +206,6 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
       return
     }
 
-    // --- COD: existing flow, unchanged ---
     try {
       const orderRes = await fetch(
         `${process.env.NEXT_PUBLIC_API_URL}/orders`,
@@ -172,7 +215,8 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             addressId: selectedAddressId,
-            paymentMethod
+            paymentMethod,
+            promoCode: appliedPromo?.code || undefined
           })
         }
       )
@@ -194,10 +238,8 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
     }
   }
 
-  // ---------- Render ----------
   if (user === null) return null
 
-  // Success screen
   if (successOrderId) {
     return (
       <main className="bg-white min-h-screen flex items-center justify-center px-6">
@@ -247,10 +289,8 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
     )
   }
 
-  // Main checkout
   return (
     <main className="bg-white min-h-screen">
-      {/* Header */}
       <div className="max-w-5xl mx-auto px-6 md:px-10 pt-10 pb-6">
         <h1 className="text-2xl md:text-3xl font-semibold text-[#111111] tracking-wide">
           Checkout
@@ -270,9 +310,7 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
 
       <div className="max-w-5xl mx-auto px-6 md:px-10 pb-20">
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-12 items-start">
-          {/* ---------- LEFT: Delivery & Payment ---------- */}
           <form onSubmit={handleSubmit} className="lg:col-span-2 space-y-10">
-            {/* Address selection */}
             <div>
               <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-5">
                 Delivery Address
@@ -341,7 +379,6 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
               )}
             </div>
 
-            {/* Payment method */}
             <div>
               <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-5">
                 Payment Method
@@ -392,7 +429,6 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
             </button>
           </form>
 
-          {/* ---------- RIGHT: Order Summary ---------- */}
           <div className="lg:col-span-1">
             <div className="bg-[#F5F5F5] p-6">
               <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-5">
@@ -442,6 +478,53 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
                     })}
                   </div>
 
+                  <div className="mb-5">
+                    <p className="text-xs text-[#111111] font-medium mb-2 uppercase tracking-widest">
+                      Promo Code
+                    </p>
+                    {appliedPromo ? (
+                      <div className="flex items-center justify-between bg-white border border-[#7A9E7E] px-3 py-2">
+                        <span className="text-sm text-[#111111]">
+                          {appliedPromo.code} applied
+                        </span>
+                        <button
+                          onClick={removePromo}
+                          className="text-xs text-[#999] hover:text-red-500"
+                        >
+                          Remove
+                        </button>
+                      </div>
+                    ) : (
+                      <>
+                        <div className="flex gap-2">
+                          <input
+                            type="text"
+                            value={promoCode}
+                            onChange={e => {
+                              setPromoCode(e.target.value.toUpperCase())
+                              setPromoError('')
+                            }}
+                            placeholder="e.g. WELCOME20"
+                            className="flex-1 border border-[#e0e0e0] px-3 py-2 text-sm bg-white text-[#111111] focus:outline-none focus:border-[#7A9E7E] uppercase placeholder:normal-case placeholder:text-[#aaa]"
+                          />
+                          <button
+                            type="button"
+                            onClick={applyPromoCode}
+                            disabled={applyingPromo}
+                            className="px-3 py-2 bg-[#111111] text-white text-xs hover:bg-[#7A9E7E] transition-colors disabled:opacity-50"
+                          >
+                            {applyingPromo ? '...' : 'Apply'}
+                          </button>
+                        </div>
+                        {promoError && (
+                          <p className="text-xs text-red-500 mt-1">
+                            {promoError}
+                          </p>
+                        )}
+                      </>
+                    )}
+                  </div>
+
                   <div className="border-t border-[#e0e0e0] pt-4 space-y-2 text-sm">
                     <div className="flex justify-between text-[#555]">
                       <span>Subtotal</span>
@@ -451,6 +534,12 @@ export default function CheckoutPage({ user, refreshCartCount }: CheckoutPagePro
                       <span>Shipping</span>
                       <span>{shipping === 0 ? 'Free' : `₹${shipping}`}</span>
                     </div>
+                    {appliedPromo && (
+                      <div className="flex justify-between text-[#7A9E7E]">
+                        <span>Promo ({appliedPromo.code})</span>
+                        <span>−₹{discount.toFixed(0)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between font-semibold text-[#111111] border-t border-[#e0e0e0] pt-2 mt-1">
                       <span>Total</span>
                       <span>₹{total.toFixed(0)}</span>

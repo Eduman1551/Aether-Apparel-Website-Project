@@ -14,6 +14,7 @@ import paymentRoutes from './routes/payment'
 import productRoutes from './routes/products'
 import reviewRoutes from './routes/reviews'
 import userRoutes from './routes/users'
+import promocodeRoutes from './routes/promocodes'
 
 const app = express()
 app.use(express.json())
@@ -33,6 +34,7 @@ app.use('/reviews', reviewRoutes)
 app.use('/banners', bannerRoutes)
 app.use('/admin/products/ai-create', adminAiProductRoutes)
 app.use('/payment', paymentRoutes)
+app.use('/promo-codes', promocodeRoutes)
 
 app.listen(5000, () => {
   console.log('Running on port 5000...')

@@ -344,6 +344,12 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
           >
             Banners
           </Link>
+          <Link
+            href="/admin/promocodes"
+            className="text-sm text-[#555] hover:text-[#111111]"
+          >
+            Promo Codes
+          </Link>
         </div>
 
         <div className="flex justify-between items-center mb-6">

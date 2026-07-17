@@ -8,6 +8,7 @@ declare global {
 interface CheckoutParams {
   addressId: string
   name?: string
+  promoCode?: string
   email?: string
   contact?: string
   onSuccess: (orderId: string) => void

@@ -109,6 +109,12 @@ export default function AdminOrdersPage({ user }: { user?: AppUser }) {
           >
             Banners
           </Link>
+          <Link
+            href="/admin/promocodes"
+            className="text-sm text-[#555] hover:text-[#111111]"
+          >
+            Promo Codes
+          </Link>
         </div>
 
         <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-6">

@@ -32,6 +32,11 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
   const [updatingId, setUpdatingId] = useState<string | null>(null)
   const [promoCode, setPromoCode] = useState('')
   const [promoError, setPromoError] = useState('')
+  const [appliedPromo, setAppliedPromo] = useState<{
+    code: string
+    discount: number
+  } | null>(null)
+  const [applyingPromo, setApplyingPromo] = useState(false)
 
   useEffect(() => {
     if (user === null) {
@@ -115,9 +120,60 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
     return sum + itemPrice * item.quantity
   }, 0)
   const shipping = subtotal > 0 && subtotal <= 999 ? 99 : 0
-  const total = subtotal + shipping
+  const discount = appliedPromo?.discount || 0
+  const total = Math.max(subtotal + shipping - discount, 0)
 
-  if (user === null) return null 
+  const applyPromoCode = async () => {
+    setPromoError('')
+
+    if (!promoCode.trim()) {
+      setPromoError('Enter a promo code')
+      return
+    }
+
+    setApplyingPromo(true)
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/promo-codes/validate`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ code: promoCode, subtotal })
+        }
+      )
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setPromoError(data.message || 'Invalid promo code')
+        setAppliedPromo(null)
+        return
+      }
+
+      setAppliedPromo({ code: data.code, discount: data.discount })
+    } catch {
+      setPromoError('Something went wrong. Please try again.')
+    } finally {
+      setApplyingPromo(false)
+    }
+  }
+
+  const removePromo = () => {
+    setAppliedPromo(null)
+    setPromoCode('')
+    setPromoError('')
+  }
+
+  const goToCheckout = () => {
+    if (appliedPromo) {
+      router.push(`/checkout?promo=${encodeURIComponent(appliedPromo.code)}`)
+    } else {
+      router.push('/checkout')
+    }
+  }
+
+  if (user === null) return null
 
   return (
     <main className="bg-white min-h-screen">
@@ -246,6 +302,7 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                           </button>
                         </div>
                       </div>
+
                       <div className="hidden md:flex md:col-span-2 flex-col items-center gap-1">
                         <span className="text-xs text-[#555] border border-[#e0e0e0] px-2 py-0.5">
                           {item.size}
@@ -254,6 +311,7 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                           {item.color}
                         </span>
                       </div>
+
                       <div className="md:col-span-2 flex items-center justify-start md:justify-center gap-2">
                         <button
                           onClick={() =>
@@ -277,6 +335,7 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                           +
                         </button>
                       </div>
+
                       <div className="md:col-span-2 flex items-center justify-start md:justify-end">
                         <span className="text-sm font-medium text-[#111111]">
                           ₹{(itemPrice * item.quantity).toFixed(0)}
@@ -286,6 +345,7 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                   )
                 })}
               </div>
+
               <div className="mt-6">
                 <Link
                   href="/products"
@@ -299,15 +359,13 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                     stroke="currentColor"
                     strokeWidth={1.5}
                   >
-                    <path
-                      strokeLinecap="round"
-                      d="M19 12H5M12 5l-7 7 7 7"
-                    />
+                    <path strokeLinecap="round" d="M19 12H5M12 5l-7 7 7 7" />
                   </svg>
                   Continue Shopping
                 </Link>
               </div>
             </div>
+
             <div className="lg:col-span-1">
               <div className="bg-[#F5F5F5] p-6">
                 <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-6">
@@ -317,8 +375,8 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                 <div className="space-y-3 text-sm">
                   <div className="flex justify-between text-[#555]">
                     <span>
-                      Subtotal (
-                      {cartItems.reduce((s, i) => s + i.quantity, 0)} items)
+                      Subtotal ({cartItems.reduce((s, i) => s + i.quantity, 0)}{' '}
+                      items)
                     </span>
                     <span className="text-[#111111] font-medium">
                       ₹{subtotal.toFixed(0)}
@@ -340,38 +398,57 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                       shipping
                     </p>
                   )}
+                  {appliedPromo && (
+                    <div className="flex justify-between text-[#7A9E7E]">
+                      <span>Promo ({appliedPromo.code})</span>
+                      <span>−₹{discount.toFixed(0)}</span>
+                    </div>
+                  )}
                 </div>
+
                 <div className="mt-6">
                   <p className="text-xs text-[#111111] font-medium mb-2 uppercase tracking-widest">
                     Promo Code
                   </p>
-                  <div className="flex gap-2">
-                    <input
-                      type="text"
-                      value={promoCode}
-                      onChange={e => {
-                        setPromoCode(e.target.value.toUpperCase())
-                        setPromoError('')
-                      }}
-                      placeholder="e.g. WELCOME20"
-                      className="flex-1 border border-[#e0e0e0] px-3 py-2 text-sm bg-white text-[#111111] focus:outline-none focus:border-[#7A9E7E] uppercase placeholder:normal-case placeholder:text-[#aaa]"
-                    />
-                    <button
-                      className="px-3 py-2 bg-[#111111] text-white text-xs hover:bg-[#7A9E7E] transition-colors"
-                      onClick={() => {
-                        if (!promoCode.trim())
-                          setPromoError('Enter a promo code')
-                        else
-                          setPromoError(
-                            'Apply promo codes at checkout'
-                          )
-                      }}
-                    >
-                      Apply
-                    </button>
-                  </div>
-                  {promoError && (
-                    <p className="text-xs text-[#7A9E7E] mt-1">{promoError}</p>
+                  {appliedPromo ? (
+                    <div className="flex items-center justify-between bg-white border border-[#7A9E7E] px-3 py-2">
+                      <span className="text-sm text-[#111111]">
+                        {appliedPromo.code} applied
+                      </span>
+                      <button
+                        onClick={removePromo}
+                        className="text-xs text-[#999] hover:text-red-500"
+                      >
+                        Remove
+                      </button>
+                    </div>
+                  ) : (
+                    <>
+                      <div className="flex gap-2">
+                        <input
+                          type="text"
+                          value={promoCode}
+                          onChange={e => {
+                            setPromoCode(e.target.value.toUpperCase())
+                            setPromoError('')
+                          }}
+                          placeholder="e.g. WELCOME20"
+                          className="flex-1 border border-[#e0e0e0] px-3 py-2 text-sm bg-white text-[#111111] focus:outline-none focus:border-[#7A9E7E] uppercase placeholder:normal-case placeholder:text-[#aaa]"
+                        />
+                        <button
+                          onClick={applyPromoCode}
+                          disabled={applyingPromo}
+                          className="px-3 py-2 bg-[#111111] text-white text-xs hover:bg-[#7A9E7E] transition-colors disabled:opacity-50"
+                        >
+                          {applyingPromo ? '...' : 'Apply'}
+                        </button>
+                      </div>
+                      {promoError && (
+                        <p className="text-xs text-red-500 mt-1">
+                          {promoError}
+                        </p>
+                      )}
+                    </>
                   )}
                 </div>
 
@@ -384,12 +461,12 @@ export default function CartPage({ user, refreshCartCount }: CartPageProps) {
                   </span>
                 </div>
 
-                <Link
-                  href="/checkout"
+                <button
+                  onClick={goToCheckout}
                   className="mt-5 block w-full bg-[#111111] text-white py-3 text-sm font-medium text-center hover:bg-[#7A9E7E] transition-colors"
                 >
                   Proceed to Checkout
-                </Link>
+                </button>
 
                 <p className="text-xs text-[#999] text-center mt-4">
                   Secure checkout · UPI & Cash on Delivery
