@@ -61,7 +61,7 @@ router.post('/order', requireAuth, async (req: AuthRequest, res: Response) => {
     const razorpayOrder = await razorpay.orders.create({
       amount: Math.round(subtotal * 100),
       currency: 'INR',
-      receipt: `reciept_${userId}_${Date.now()}`
+      receipt: `rcpt_${Date.now()}`
     })
 
     const order = await prisma.order.create({
@@ -91,7 +91,7 @@ router.post('/order', requireAuth, async (req: AuthRequest, res: Response) => {
       internalOrderId: order.id,
       amount: razorpayOrder.amount,
       currency: razorpayOrder.currency,
-      keyId: process.env.RAZORPAY_KEY_ID
+      keyId: process.env.RAZORPAY_API_KEY
     })
   } catch (err) {
     console.error('Razorpay order creation failed', err)
@@ -110,7 +110,7 @@ router.post('/verify', requireAuth, async (req: AuthRequest, res: Response) => {
     }
 
     const expectedSignature = crypto
-      .createHmac('sha256', process.env.RAZORPAY_KEY_SECRET as string)
+      .createHmac('sha256', process.env.RAZORPAY_API_SECRET as string)
       .update(`${razorpay_order_id}|${razorpay_payment_id}`)
       .digest('hex')
 
@@ -132,10 +132,20 @@ router.post('/verify', requireAuth, async (req: AuthRequest, res: Response) => {
       return res.status(404).json({ message: 'Order not found' })
     }
 
-    await prisma.order.update({
+    const orderWithItems = await prisma.order.update({
       where: { id: order.id },
-      data: { status: 'CONFIRMED', razorpayPaymentId: razorpay_payment_id }
+      data: { status: 'CONFIRMED', razorpayPaymentId: razorpay_payment_id },
+      include: { items: true }
     })
+
+    await Promise.all(
+      orderWithItems.items.map(item =>
+        prisma.product.update({
+          where: { id: item.productId },
+          data: { stock: { decrement: item.quantity } }
+        })
+      )
+    )
 
     await prisma.cartItem.deleteMany({ where: { userId } })
     res.json({ verified: true, orderId: order.id })

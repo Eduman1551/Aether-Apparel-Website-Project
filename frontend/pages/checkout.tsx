@@ -35,9 +35,10 @@ type AppUser = { id: string; name: string; email: string } | null
 
 type CheckoutPageProps = {
   user?: AppUser
+  refreshCartCount?: () => Promise<void>
 }
 
-export default function CheckoutPage({ user }: CheckoutPageProps) {
+export default function CheckoutPage({ user, refreshCartCount }: CheckoutPageProps) {
   const router = useRouter()
 
   // Cart
@@ -148,9 +149,10 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
         addressId: selectedAddressId,
         name: user?.name,
         email: user?.email,
-        onSuccess: orderId => {
+        onSuccess: async orderId => {
           setSubmitting(false)
           setSuccessOrderId(orderId)
+          await refreshCartCount?.()
         },
         onFailure: message => {
           setSubmitting(false)
@@ -184,6 +186,7 @@ export default function CheckoutPage({ user }: CheckoutPageProps) {
       }
 
       setSuccessOrderId(orderData.order.id)
+      await refreshCartCount?.()
     } catch {
       setError('Something went wrong. Please try again.')
     } finally {
