@@ -1,7 +1,7 @@
-import Image from 'next/image'
-import Link from 'next/link'
-import { useRouter } from 'next/router'
 import { useEffect, useState } from 'react'
+import { useRouter } from 'next/router'
+import Link from 'next/link'
+import Image from 'next/image'
 
 interface Product {
   id: string
@@ -27,15 +27,12 @@ interface Product {
 
 type AppUser = { id: string; name: string; role: string } | null
 
-export default function ProductDetailPage({
-  user,
-  refreshCartCount
-}: {
-  user?: AppUser
-  refreshCartCount?: () => Promise<void>
-}) {
+export default function ProductDetailPage({ user }: { user?: AppUser }) {
   const router = useRouter()
-  const { id } = router.query
+  const { id, from } = router.query
+  const backHref = from
+    ? `/products?category=${encodeURIComponent(from as string)}`
+    : '/products'
 
   const [product, setProduct] = useState<Product | null>(null)
   const [related, setRelated] = useState<Product[]>([])
@@ -46,18 +43,14 @@ export default function ProductDetailPage({
   const [selectedColor, setSelectedColor] = useState('')
   const [quantity, setQuantity] = useState(1)
 
+  const [isZooming, setIsZooming] = useState(false)
+  const [zoomPosition, setZoomPosition] = useState({ x: 50, y: 50 })
+
   const [reviewRating, setReviewRating] = useState(0)
   const [reviewComment, setReviewComment] = useState('')
   const [reviewError, setReviewError] = useState('')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
-
-  // Cart states
-  const [cartError, setCartError] = useState('')
-  const [cartAdding, setCartAdding] = useState(false)
-
-  // Toast state
-  const [toast, setToast] = useState<string | null>(null)
 
   const fetchProduct = async () => {
     setLoading(true)
@@ -68,6 +61,16 @@ export default function ProductDetailPage({
       const data = await res.json()
       setProduct(data.product)
       setRelated(data.relatedProducts || [])
+
+      if (data.product?.id) {
+        const raw = localStorage.getItem('recentlyViewed')
+        const viewed: string[] = raw ? JSON.parse(raw) : []
+        const updated = [
+          data.product.id,
+          ...viewed.filter(pid => pid !== data.product.id)
+        ].slice(0, 10)
+        localStorage.setItem('recentlyViewed', JSON.stringify(updated))
+      }
     } catch (err) {
       console.error('Failed to fetch product', err)
     } finally {
@@ -77,18 +80,12 @@ export default function ProductDetailPage({
 
   useEffect(() => {
     if (!id) return
-    // eslint-disable-next-line
+    // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProduct()
+    // eslint-disable-next-line
   }, [id])
 
-  // Auto-dismiss toast after 3 seconds
-  useEffect(() => {
-    if (!toast) return
-    const timer = setTimeout(() => setToast(null), 3000)
-    return () => clearTimeout(timer)
-  }, [toast])
-
-  const handleReviewSubmit = async (e: React.FormEvent) => {
+  const handleReviewSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault()
     setReviewError('')
 
@@ -151,60 +148,11 @@ export default function ProductDetailPage({
     }
   }
 
-  // Add to Cart handler
-  const handleAddToCart = async () => {
-    // Redirect if not logged in
-    if (!user) {
-      router.push('/login')
-      return
-    }
-
-    setCartError('')
-    if (!product) return
-
-    if (product.sizes.length > 0 && !selectedSize) {
-      setCartError('Please select a size.')
-      return
-    }
-    if (product.colors.length > 0 && !selectedColor) {
-      setCartError('Please select a color.')
-      return
-    }
-
-    setCartAdding(true)
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart`, {
-        method: 'POST',
-        credentials: 'include',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          productId: id,
-          size: selectedSize || undefined,
-          color: selectedColor || undefined,
-          quantity
-        })
-      })
-
-      if (res.status === 401) {
-        router.push('/login')
-        return
-      }
-
-      const data = await res.json().catch(() => ({}))
-
-      if (!res.ok) {
-        setCartError(data.message || 'Failed to add to cart')
-        return
-      }
-
-      // Success → show toast
-      setToast(`${product.name} added to cart!`)
-      await refreshCartCount?.()
-    } catch {
-      setCartError('Something went wrong. Please try again.')
-    } finally {
-      setCartAdding(false)
-    }
+  const handleMouseMove = (e: React.MouseEvent<HTMLDivElement>) => {
+    const bounds = e.currentTarget.getBoundingClientRect()
+    const x = ((e.clientX - bounds.left) / bounds.width) * 100
+    const y = ((e.clientY - bounds.top) / bounds.height) * 100
+    setZoomPosition({ x, y })
   }
 
   if (loading) {
@@ -232,24 +180,34 @@ export default function ProductDetailPage({
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
-      {/* ===== TOAST ===== */}
-      {toast && (
-        <div
-          className="
-            fixed top-6 right-6 z-50
-            bg-[#7A9E7E] text-white px-6 py-3
-            rounded shadow-lg
-            text-sm font-medium
-            animate-[fadeIn_0.3s_ease-out]
-          "
+      <Link
+        href={backHref}
+        className="inline-flex items-center gap-1.5 text-sm text-[#555] hover:text-[#111111] transition-colors mb-6"
+      >
+        <svg
+          width="16"
+          height="16"
+          fill="none"
+          viewBox="0 0 24 24"
+          stroke="currentColor"
+          strokeWidth={1.5}
         >
-          {toast}
-        </div>
-      )}
-
+          <path
+            strokeLinecap="round"
+            strokeLinejoin="round"
+            d="M15 19l-7-7 7-7"
+          />
+        </svg>
+        Back
+      </Link>
       <div className="grid grid-cols-1 md:grid-cols-[1.1fr_1fr] gap-10">
         <div className="md:sticky md:top-24 self-start">
-          <div className="relative aspect-4/5 bg-[#F5F5F5] mb-3">
+          <div
+            className="relative aspect-4/5 bg-[#F5F5F5] mb-3 overflow-hidden cursor-zoom-in"
+            onMouseEnter={() => setIsZooming(true)}
+            onMouseLeave={() => setIsZooming(false)}
+            onMouseMove={handleMouseMove}
+          >
             {product.images?.[selectedImage] && (
               <Image
                 src={product.images[selectedImage]}
@@ -257,6 +215,15 @@ export default function ProductDetailPage({
                 fill
                 sizes="(max-width: 768px) 100vw, 50vw"
                 className="object-cover"
+                style={{
+                  transition: isZooming ? 'none' : 'transform 0.2s ease-out',
+                  ...(isZooming
+                    ? {
+                        transform: 'scale(2)',
+                        transformOrigin: `${zoomPosition.x}% ${zoomPosition.y}%`
+                      }
+                    : {})
+                }}
               />
             )}
           </div>
@@ -265,7 +232,7 @@ export default function ProductDetailPage({
               <button
                 key={i}
                 onClick={() => setSelectedImage(i)}
-                className={`relative w-14 h-17.5 bg-[#F5F5F5] border ${
+                className={`relative w-14 h-70px bg-[#F5F5F5] border ${
                   selectedImage === i
                     ? 'border-[#111111]'
                     : 'border-transparent'
@@ -323,10 +290,7 @@ export default function ProductDetailPage({
               {product.colors.map(color => (
                 <button
                   key={color}
-                  onClick={() => {
-                    setSelectedColor(color)
-                    setCartError('')
-                  }}
+                  onClick={() => setSelectedColor(color)}
                   className={`px-3 py-1.5 text-xs border ${
                     selectedColor === color
                       ? 'border-[#111111] bg-[#111111] text-white'
@@ -345,10 +309,7 @@ export default function ProductDetailPage({
               {product.sizes.map(size => (
                 <button
                   key={size}
-                  onClick={() => {
-                    setSelectedSize(size)
-                    setCartError('')
-                  }}
+                  onClick={() => setSelectedSize(size)}
                   className={`w-10 h-10 text-xs border ${
                     selectedSize === size
                       ? 'border-[#111111] bg-[#111111] text-white'
@@ -387,19 +348,14 @@ export default function ProductDetailPage({
             </p>
           </div>
 
-          {cartError && (
-            <p className="text-sm text-red-600 mt-3">{cartError}</p>
-          )}
-
           <button
-            onClick={handleAddToCart}
-            disabled={product.stock === 0 || cartAdding}
+            disabled={product.stock === 0}
             className="w-full mt-5 bg-[#111111] text-white py-3 text-sm font-medium hover:bg-[#7A9E7E] transition-colors disabled:opacity-50"
           >
-            {cartAdding ? 'Adding...' : 'Add to Cart'}
+            Add to Cart
           </button>
 
-          <div className="mt-6 divide-y divide-[#141111] border-t border-[#e5e5e5]">
+          <div className="mt-6 divide-y divide-[#e5e5e5] border-t border-[#e5e5e5]">
             <div className="py-3">
               <p className="text-xs font-medium text-[#111111] mb-1">
                 Material

@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import Link from 'next/link'
 import Image from 'next/image'
+import { useRouter } from 'next/router'
 
 interface Product {
   id: string
@@ -27,8 +28,10 @@ const SORT_LABELS: Record<string, string> = {
 }
 
 export default function ProductsPage() {
+  const router = useRouter()
   const [products, setProducts] = useState<Product[]>([])
   const [categories, setCategories] = useState<Category[]>([])
+  const [recentlyViewed, setRecentlyViewed] = useState<Product[]>([])
   const [loading, setLoading] = useState(true)
   const [filtersOpen, setFiltersOpen] = useState(false)
 
@@ -50,13 +53,48 @@ export default function ProductsPage() {
         const list: Category[] = data.categories || []
         setCategories(list)
         if (list.length > 0) {
-          setFilters(prev => ({ ...prev, category: list[0].name }))
+          const fromUrl = router.query.category as string | undefined
+          const matched = fromUrl && list.find(c => c.name === fromUrl)
+          setFilters(prev => ({
+            ...prev,
+            category: matched ? matched.name : list[0].name
+          }))
         }
       } catch (err) {
         console.error('Failed to fetch categories', err)
       }
     }
     fetchCategories()
+  }, [])
+
+  useEffect(() => {
+    const raw = localStorage.getItem('recentlyViewed')
+    const ids: string[] = raw ? JSON.parse(raw) : []
+    if (ids.length === 0) {
+      //eslint-disable-next-line
+      setRecentlyViewed([])
+      return
+    }
+
+    const fetchRecentlyViewed = async () => {
+      try {
+        const results = await Promise.all(
+          ids.map(async id => {
+            const res = await fetch(
+              `${process.env.NEXT_PUBLIC_API_URL}/products/${id}`
+            )
+            if (!res.ok) return null
+            const data = await res.json()
+            return data.product || null
+          })
+        )
+        setRecentlyViewed(results.filter(Boolean) as Product[])
+      } catch (err) {
+        console.error('Failed to fetch recently viewed', err)
+      }
+    }
+
+    fetchRecentlyViewed()
   }, [])
 
   useEffect(() => {
@@ -166,6 +204,51 @@ export default function ProductsPage() {
             ))}
           </div>
         </div>
+      </div>
+
+      <div className="max-w-[1600px] mx-auto px-5 sm:px-8 lg:px-12 py-5 border-b border-[#e5e5e5]">
+        <div className="flex items-center justify-between mb-3">
+          <p className="text-xs font-medium text-[#999] tracking-widest uppercase">
+            Recently Viewed
+          </p>
+          {recentlyViewed.length > 0 && (
+            <button
+              onClick={() => {
+                localStorage.removeItem('recentlyViewed')
+                setRecentlyViewed([])
+              }}
+              className="text-xs text-[#999] hover:text-[#B23B3B] transition-colors underline underline-offset-2"
+            >
+              Clear Recently Viewed
+            </button>
+          )}
+        </div>
+        {recentlyViewed.length === 0 ? (
+          <p className="text-sm text-[#999]">No recently viewed items yet.</p>
+        ) : (
+          <div className="flex gap-4 overflow-x-auto no-scrollbar">
+            {recentlyViewed.map(p => (
+              <Link
+                key={p.id}
+                href={`/products/${p.id}`}
+                className="shrink-0 w-24 group"
+              >
+                <div className="relative aspect-3/4 bg-[#F5F5F5] overflow-hidden mb-1.5">
+                  {p.images?.[0] && (
+                    <Image
+                      src={p.images[0]}
+                      alt={p.name}
+                      fill
+                      sizes="96px"
+                      className="object-cover group-hover:scale-105 transition-transform duration-300"
+                    />
+                  )}
+                </div>
+                <p className="text-[11px] text-[#555] truncate">{p.name}</p>
+              </Link>
+            ))}
+          </div>
+        )}
       </div>
 
       <div className="sticky top-0 z-40 bg-white/95 backdrop-blur-sm border-b border-[#e5e5e5]">
@@ -414,7 +497,7 @@ export default function ProductsPage() {
               return (
                 <Link
                   key={product.id}
-                  href={`/products/${product.id}`}
+                  href={`/products/${product.id}?from=${encodeURIComponent(filters.category)}`}
                   className="group block"
                 >
                   <div className="relative aspect-video  bg-[#F5F5F5] overflow-hidden rounded-sm mb-4">
