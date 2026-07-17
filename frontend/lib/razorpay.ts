@@ -20,6 +20,7 @@ export async function startRazorpayCheckout({
   name,
   email,
   contact,
+  promoCode,
   onSuccess,
   onFailure
 }: CheckoutParams) {
@@ -30,7 +31,7 @@ export async function startRazorpayCheckout({
         method: 'POST',
         credentials: 'include',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ addressId })
+        body: JSON.stringify({ addressId, promoCode })
       }
     )
 

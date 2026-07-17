@@ -13,6 +13,7 @@ const razorpay = new Razorpay({
 
 type CreateOrderBody = {
   addressId: string
+  promoCode?: string
 }
 
 type VerifyPaymentBody = {
@@ -24,7 +25,7 @@ type VerifyPaymentBody = {
 router.post('/order', requireAuth, async (req: AuthRequest, res: Response) => {
   try {
     const userId = req.userId as string
-    const { addressId } = req.body as CreateOrderBody
+    const { addressId, promoCode } = req.body as CreateOrderBody
 
     if (!addressId) {
       return res
@@ -55,11 +56,34 @@ router.post('/order', requireAuth, async (req: AuthRequest, res: Response) => {
     }, 0)
 
     const shipping = 0
-    const discount = 0
-    const total = subtotal + shipping - discount
+
+    let discount = 0
+    let appliedPromoId: string | null = null
+
+    if (promoCode) {
+      const promo = await prisma.promoCode.findUnique({
+        where: { code: promoCode.toUpperCase() }
+      })
+
+      if (!promo || !promo.isActive) {
+        return res.status(400).json({ message: 'Invalid promo code' })
+      }
+      if (promo.expiresAt && promo.expiresAt < new Date()) {
+        return res.status(400).json({ message: 'This promo code has expired' })
+      }
+
+      discount =
+        promo.discountType === 'PERCENT'
+          ? (subtotal * promo.discountValue) / 100
+          : promo.discountValue
+
+      appliedPromoId = promo.id
+    }
+
+    const total = Math.max(subtotal + shipping - discount, 0)
 
     const razorpayOrder = await razorpay.orders.create({
-      amount: Math.round(subtotal * 100),
+      amount: Math.round(total * 100),
       currency: 'INR',
       receipt: `rcpt_${Date.now()}`
     })
@@ -72,6 +96,7 @@ router.post('/order', requireAuth, async (req: AuthRequest, res: Response) => {
         shipping,
         discount,
         total,
+        promoCodeId: appliedPromoId,
         paymentMethod: 'UPI',
         status: 'PENDING',
         razorpayOrderId: razorpayOrder.id,
