@@ -27,7 +27,8 @@ router.post('/products', async (req: AuthRequest, res: Response) => {
       !name ||
       !description ||
       !material ||
-      !price ||
+      price === undefined ||
+      price === null ||
       !gender ||
       !categoryId
     ) {
@@ -63,15 +64,49 @@ router.post('/products', async (req: AuthRequest, res: Response) => {
 router.patch('/products/:id', async (req: AuthRequest, res: Response) => {
   try {
     const { id } = req.params as { id: string }
-    const updates = req.body
+
+    // Whitelist exactly the fields a product update is allowed to touch —
+    // never pass req.body straight to Prisma, since an unexpected key
+    // (typo, stale frontend field, a differently-shaped AI response, etc.)
+    // throws an "Unknown argument" error and 500s the whole request.
+    const {
+      name,
+      description,
+      material,
+      care,
+      price,
+      discount,
+      gender,
+      sizes,
+      colors,
+      stock,
+      categoryId,
+      images
+    } = req.body
 
     const product = await prisma.product.update({
       where: { id },
-      data: updates
+      data: {
+        name,
+        description,
+        material,
+        care,
+        price,
+        discount,
+        gender,
+        sizes,
+        colors,
+        stock,
+        categoryId,
+        images
+      }
     })
 
     return res.status(200).json({ product })
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'P2025') {
+      return res.status(404).json({ message: 'Product not found' })
+    }
     console.error('Admin update product error:', error)
     return res.status(500).json({ message: 'Something went wrong' })
   }
@@ -82,7 +117,10 @@ router.delete('/products/:id', async (req: AuthRequest, res: Response) => {
     const { id } = req.params as { id: string }
     await prisma.product.delete({ where: { id } })
     return res.status(200).json({ message: 'Product deleted' })
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'P2025') {
+      return res.status(404).json({ message: 'Product not found' })
+    }
     console.error('Admin delete product error:', error)
     return res.status(500).json({ message: 'Something went wrong' })
   }
@@ -128,7 +166,10 @@ router.patch('/orders/:id', async (req: AuthRequest, res: Response) => {
     })
 
     return res.status(200).json({ order })
-  } catch (error) {
+  } catch (error: any) {
+    if (error?.code === 'P2025') {
+      return res.status(404).json({ message: 'Order not found' })
+    }
     console.error('Admin update order error:', error)
     return res.status(500).json({ message: 'Something went wrong' })
   }

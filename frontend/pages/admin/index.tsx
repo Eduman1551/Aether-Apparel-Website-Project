@@ -14,6 +14,7 @@ export default function AdminDashboard({ user }: { user?: AppUser }) {
   const router = useRouter()
   const [report, setReport] = useState<SalesReport | null>(null)
   const [loading, setLoading] = useState(true)
+  const [reportError, setReportError] = useState(false)
 
   useEffect(() => {
     if (user && user.role !== 'ADMIN') {
@@ -38,10 +39,16 @@ export default function AdminDashboard({ user }: { user?: AppUser }) {
           router.replace('/')
           return
         }
+        if (!res.ok) {
+          console.error('Failed to fetch report:', res.status)
+          setReportError(true)
+          return
+        }
         const data = await res.json()
         setReport(data)
       } catch (err) {
         console.error('Failed to fetch report', err)
+        setReportError(true)
       } finally {
         setLoading(false)
       }
@@ -101,47 +108,58 @@ export default function AdminDashboard({ user }: { user?: AppUser }) {
           </Link>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
-          <div className="border border-[#e5e5e5] p-6">
-            <p className="text-xs text-[#999] uppercase tracking-widest mb-2">
-              Total Revenue
-            </p>
-            <p className="text-3xl font-semibold text-[#111111]">
-              ₹{report?.totalRevenue.toFixed(0)}
+        {reportError ? (
+          <div className="border border-[#e5e5e5] p-6 mb-12">
+            <p className="text-sm text-[#555]">
+              Couldn&apos;t load the sales report right now. Try refreshing the
+              page.
             </p>
           </div>
-          <div className="border border-[#e5e5e5] p-6">
-            <p className="text-xs text-[#999] uppercase tracking-widest mb-2">
-              Total Orders
-            </p>
-            <p className="text-3xl font-semibold text-[#111111]">
-              {report?.totalOrders}
-            </p>
-          </div>
-        </div>
-
-        <div>
-          <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-4">
-            Top Selling Products
-          </h2>
-          {report?.topProducts.length === 0 ? (
-            <p className="text-sm text-[#555]">No sales data yet.</p>
-          ) : (
-            <div className="space-y-3">
-              {report?.topProducts.map((p, i) => (
-                <div
-                  key={i}
-                  className="flex justify-between border-b border-[#e5e5e5] pb-3"
-                >
-                  <span className="text-sm text-[#111111]">{p.name}</span>
-                  <span className="text-sm text-[#555]">
-                    {p.quantitySold} sold
-                  </span>
-                </div>
-              ))}
+        ) : (
+          <>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-12">
+              <div className="border border-[#e5e5e5] p-6">
+                <p className="text-xs text-[#999] uppercase tracking-widest mb-2">
+                  Total Revenue
+                </p>
+                <p className="text-3xl font-semibold text-[#111111]">
+                  ₹{report?.totalRevenue?.toFixed(0) ?? 0}
+                </p>
+              </div>
+              <div className="border border-[#e5e5e5] p-6">
+                <p className="text-xs text-[#999] uppercase tracking-widest mb-2">
+                  Total Orders
+                </p>
+                <p className="text-3xl font-semibold text-[#111111]">
+                  {report?.totalOrders ?? 0}
+                </p>
+              </div>
             </div>
-          )}
-        </div>
+
+            <div>
+              <h2 className="text-sm font-semibold text-[#111111] uppercase tracking-widest mb-4">
+                Top Selling Products
+              </h2>
+              {(report?.topProducts?.length ?? 0) === 0 ? (
+                <p className="text-sm text-[#555]">No sales data yet.</p>
+              ) : (
+                <div className="space-y-3">
+                  {report?.topProducts?.map((p, i) => (
+                    <div
+                      key={i}
+                      className="flex justify-between border-b border-[#e5e5e5] pb-3"
+                    >
+                      <span className="text-sm text-[#111111]">{p.name}</span>
+                      <span className="text-sm text-[#555]">
+                        {p.quantitySold} sold
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </main>
   )

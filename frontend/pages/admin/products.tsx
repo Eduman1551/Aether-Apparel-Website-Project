@@ -37,6 +37,7 @@ const SUGGESTED_COLORS = [
   'Sage Green',
   'Blue'
 ]
+const MAX_IMAGES = 6
 
 const emptyForm = {
   name: '',
@@ -147,6 +148,16 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
     if (!files || files.length === 0) return
 
     setUploadError('')
+
+    // Enforce the 6-image cap client-side instead of just mentioning it in a hint
+    if (form.images.length + files.length > MAX_IMAGES) {
+      setUploadError(
+        `You can only have up to ${MAX_IMAGES} images per product (${form.images.length} already added).`
+      )
+      e.target.value = ''
+      return
+    }
+
     setUploadingImages(true)
 
     const formData = new FormData()
@@ -214,6 +225,10 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
     e.preventDefault()
     setError('')
 
+    if (uploadingImages) {
+      setError('Please wait for images to finish uploading.')
+      return
+    }
     if (!form.categoryId) {
       setError('Please select a category.')
       return
@@ -788,7 +803,13 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
                 )}
 
                 <label className="block">
-                  <span className="inline-block px-4 py-2 text-sm border border-[#e0e0e0] text-[#111111] hover:border-[#111111] cursor-pointer transition-colors">
+                  <span
+                    className={`inline-block px-4 py-2 text-sm border transition-colors ${
+                      uploadingImages || form.images.length >= MAX_IMAGES
+                        ? 'border-[#e0e0e0] text-[#999] cursor-not-allowed'
+                        : 'border-[#e0e0e0] text-[#111111] hover:border-[#111111] cursor-pointer'
+                    }`}
+                  >
                     {uploadingImages ? 'Uploading...' : '+ Upload Images'}
                   </span>
                   <input
@@ -796,7 +817,9 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
                     accept="image/*"
                     multiple
                     onChange={handleFileUpload}
-                    disabled={uploadingImages}
+                    disabled={
+                      uploadingImages || form.images.length >= MAX_IMAGES
+                    }
                     className="hidden"
                   />
                 </label>
@@ -804,7 +827,8 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
                   <p className="text-sm text-red-600 mt-2">{uploadError}</p>
                 )}
                 <p className="text-xs text-[#999] mt-1.5">
-                  Select up to 6 images at once. Max 5MB per image.
+                  {form.images.length}/{MAX_IMAGES} images added. Max 5MB per
+                  image.
                 </p>
               </div>
 
@@ -813,9 +837,14 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
               <div className="flex gap-3 pt-4 border-t border-[#e5e5e5]">
                 <button
                   type="submit"
-                  className="flex-1 bg-[#111111] text-white py-3 text-sm font-medium hover:bg-[#7A9E7E] transition-colors"
+                  disabled={uploadingImages}
+                  className="flex-1 bg-[#111111] text-white py-3 text-sm font-medium hover:bg-[#7A9E7E] transition-colors disabled:opacity-50"
                 >
-                  {editingId ? 'Save Changes' : 'Add Product'}
+                  {uploadingImages
+                    ? 'Uploading images...'
+                    : editingId
+                      ? 'Save Changes'
+                      : 'Add Product'}
                 </button>
                 <button
                   type="button"
