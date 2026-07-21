@@ -61,11 +61,11 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
   const [showForm, setShowForm] = useState(false)
   const [editingId, setEditingId] = useState<string | null>(null)
   const [form, setForm] = useState(emptyForm)
-  const [imageInput, setImageInput] = useState('')
+  const [uploadingImages, setUploadingImages] = useState(false)
+  const [uploadError, setUploadError] = useState('')
   const [customColor, setCustomColor] = useState('')
   const [error, setError] = useState('')
 
-  // ── AI Add state ──
   const [showAiModal, setShowAiModal] = useState(false)
   const [aiPrompt, setAiPrompt] = useState('')
   const [aiLoading, setAiLoading] = useState(false)
@@ -142,11 +142,39 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
     setCustomColor('')
   }
 
-  const addImage = () => {
-    const trimmed = imageInput.trim()
-    if (trimmed) {
-      setForm(prev => ({ ...prev, images: [...prev.images, trimmed] }))
-      setImageInput('')
+  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const files = e.target.files
+    if (!files || files.length === 0) return
+
+    setUploadError('')
+    setUploadingImages(true)
+
+    const formData = new FormData()
+    Array.from(files).forEach(file => formData.append('images', file))
+
+    try {
+      const res = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/admin/upload`,
+        {
+          method: 'POST',
+          credentials: 'include',
+          body: formData
+        }
+      )
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setUploadError(data.message || 'Failed to upload images')
+        return
+      }
+
+      setForm(prev => ({ ...prev, images: [...prev.images, ...data.urls] }))
+    } catch {
+      setUploadError('Something went wrong uploading images.')
+    } finally {
+      setUploadingImages(false)
+      e.target.value = ''
     }
   }
 
@@ -156,7 +184,7 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
 
   const resetForm = () => {
     setForm(emptyForm)
-    setImageInput('')
+    setUploadError('')
     setCustomColor('')
     setEditingId(null)
     setShowForm(false)
@@ -250,7 +278,6 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
     fetchProducts()
   }
 
-  // ── AI Add handlers ──
   const resetAiModal = () => {
     setAiPrompt('')
     setAiError('')
@@ -290,8 +317,6 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
       await fetchProducts()
       resetAiModal()
 
-      // The AI can't invent real image URLs, so drop straight into Edit
-      // so the admin can add photos right away.
       if (data.product) {
         startEdit(data.product)
       }
@@ -379,7 +404,6 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
           </div>
         </div>
 
-        {/* Products List */}
         <div className="space-y-3 mb-10">
           {products.map(product => (
             <div
@@ -426,7 +450,6 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
         </div>
       </div>
 
-      {/* ── AI Add Modal ── */}
       {showAiModal && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center overflow-y-auto py-10 px-4">
           <div className="bg-white w-full max-w-lg shadow-xl">
@@ -484,11 +507,9 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
         </div>
       )}
 
-      {/* ── Modal Form ── */}
       {showForm && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-start justify-center overflow-y-auto py-10 px-4">
           <div className="bg-white w-full max-w-2xl shadow-xl">
-            {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-[#e5e5e5] px-8 py-5 sticky top-0 bg-white">
               <h2 className="text-lg font-semibold text-[#111111]">
                 {editingId ? 'Edit Product' : 'Add New Product'}
@@ -502,7 +523,6 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
             </div>
 
             <form onSubmit={handleSubmit} className="px-8 py-6 space-y-10">
-              {/* Section: Basic Info */}
               <div>
                 <p className="text-xs font-semibold text-[#7A9E7E] uppercase tracking-widest mb-4">
                   Basic Information
@@ -581,7 +601,6 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
                 </div>
               </div>
 
-              {/* Section: Materials */}
               <div>
                 <p className="text-xs font-semibold text-[#7A9E7E] uppercase tracking-widest mb-4">
                   Materials
@@ -615,7 +634,6 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
                 </div>
               </div>
 
-              {/* Section: Pricing & Stock */}
               <div>
                 <p className="text-xs font-semibold text-[#7A9E7E] uppercase tracking-widest mb-4">
                   Pricing &amp; Stock
@@ -661,7 +679,6 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
                 </div>
               </div>
 
-              {/* Section: Variants */}
               <div>
                 <p className="text-xs font-semibold text-[#7A9E7E] uppercase tracking-widest mb-4">
                   Variants
@@ -739,7 +756,6 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
                 </div>
               </div>
 
-              {/* Section: Images */}
               <div>
                 <p className="text-xs font-semibold text-[#7A9E7E] uppercase tracking-widest mb-4">
                   Product Images
@@ -771,26 +787,29 @@ export default function AdminProductsPage({ user }: { user?: AppUser }) {
                   </div>
                 )}
 
-                <div className="flex gap-2">
+                <label className="block">
+                  <span className="inline-block px-4 py-2 text-sm border border-[#e0e0e0] text-[#111111] hover:border-[#111111] cursor-pointer transition-colors">
+                    {uploadingImages ? 'Uploading...' : '+ Upload Images'}
+                  </span>
                   <input
-                    value={imageInput}
-                    onChange={e => setImageInput(e.target.value)}
-                    placeholder="Paste image URL"
-                    className="flex-1 border border-[#e0e0e0] px-3 py-2 text-sm focus:outline-none focus:border-[#7A9E7E]"
+                    type="file"
+                    accept="image/*"
+                    multiple
+                    onChange={handleFileUpload}
+                    disabled={uploadingImages}
+                    className="hidden"
                   />
-                  <button
-                    type="button"
-                    onClick={addImage}
-                    className="px-4 py-2 text-sm border border-[#e0e0e0] text-[#111111] hover:border-[#111111]"
-                  >
-                    Add Image
-                  </button>
-                </div>
+                </label>
+                {uploadError && (
+                  <p className="text-sm text-red-600 mt-2">{uploadError}</p>
+                )}
+                <p className="text-xs text-[#999] mt-1.5">
+                  Select up to 6 images at once. Max 5MB per image.
+                </p>
               </div>
 
               {error && <p className="text-sm text-red-600">{error}</p>}
 
-              {/* Actions */}
               <div className="flex gap-3 pt-4 border-t border-[#e5e5e5]">
                 <button
                   type="submit"

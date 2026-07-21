@@ -27,7 +27,13 @@ interface Product {
 
 type AppUser = { id: string; name: string; role: string } | null
 
-export default function ProductDetailPage({ user }: { user?: AppUser }) {
+export default function ProductDetailPage({
+  user,
+  refreshCartCount
+}: {
+  user?: AppUser
+  refreshCartCount?: () => Promise<void>
+}) {
   const router = useRouter()
   const { id, from } = router.query
   const backHref = from
@@ -51,6 +57,10 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
   const [reviewError, setReviewError] = useState('')
   const [reviewSubmitting, setReviewSubmitting] = useState(false)
   const [reviewSubmitted, setReviewSubmitted] = useState(false)
+
+  const [cartError, setCartError] = useState('')
+  const [cartAdding, setCartAdding] = useState(false)
+  const [toast, setToast] = useState<string | null>(null)
 
   const fetchProduct = async () => {
     setLoading(true)
@@ -82,8 +92,14 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
     if (!id) return
     // eslint-disable-next-line react-hooks/set-state-in-effect
     fetchProduct()
-    // eslint-disable-next-line 
+    // eslint-disable-next-line
   }, [id])
+
+  useEffect(() => {
+    if (!toast) return
+    const timer = setTimeout(() => setToast(null), 3000)
+    return () => clearTimeout(timer)
+  }, [toast])
 
   const handleReviewSubmit = async (e: React.SyntheticEvent) => {
     e.preventDefault()
@@ -155,6 +171,59 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
     setZoomPosition({ x, y })
   }
 
+  const handleAddToCart = async () => {
+    if (!user) {
+      router.push('/login')
+      return
+    }
+
+    setCartError('')
+    if (!product) return
+
+    if (product.sizes.length > 0 && !selectedSize) {
+      setCartError('Please select a size.')
+      return
+    }
+    if (product.colors.length > 0 && !selectedColor) {
+      setCartError('Please select a color.')
+      return
+    }
+
+    setCartAdding(true)
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/cart`, {
+        method: 'POST',
+        credentials: 'include',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          productId: id,
+          size: selectedSize || undefined,
+          color: selectedColor || undefined,
+          quantity
+        })
+      })
+
+      if (res.status === 401) {
+        router.push('/login')
+        return
+      }
+
+      const data = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        setCartError(data.message || 'Failed to add to cart')
+        return
+      }
+
+      setToast(`${product.name} added to cart!`)
+      await refreshCartCount?.()
+    } catch {
+      setCartError('Something went wrong. Please try again.')
+    } finally {
+      setCartAdding(false)
+    }
+  }
+
   if (loading) {
     return (
       <div className="max-w-7xl mx-auto px-6 py-12 text-sm text-[#555]">
@@ -180,6 +249,12 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
 
   return (
     <div className="max-w-6xl mx-auto px-6 py-10">
+      {toast && (
+        <div className="fixed top-6 right-6 z-50 bg-[#7A9E7E] text-white px-6 py-3 rounded shadow-lg text-sm font-medium">
+          {toast}
+        </div>
+      )}
+
       <Link
         href={backHref}
         className="inline-flex items-center gap-1.5 text-sm text-[#555] hover:text-[#111111] transition-colors mb-6"
@@ -290,7 +365,10 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
               {product.colors.map(color => (
                 <button
                   key={color}
-                  onClick={() => setSelectedColor(color)}
+                  onClick={() => {
+                    setSelectedColor(color)
+                    setCartError('')
+                  }}
                   className={`px-3 py-1.5 text-xs border ${
                     selectedColor === color
                       ? 'border-[#111111] bg-[#111111] text-white'
@@ -309,7 +387,10 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
               {product.sizes.map(size => (
                 <button
                   key={size}
-                  onClick={() => setSelectedSize(size)}
+                  onClick={() => {
+                    setSelectedSize(size)
+                    setCartError('')
+                  }}
                   className={`w-10 h-10 text-xs border ${
                     selectedSize === size
                       ? 'border-[#111111] bg-[#111111] text-white'
@@ -348,11 +429,16 @@ export default function ProductDetailPage({ user }: { user?: AppUser }) {
             </p>
           </div>
 
+          {cartError && (
+            <p className="text-sm text-red-600 mt-3">{cartError}</p>
+          )}
+
           <button
-            disabled={product.stock === 0}
+            onClick={handleAddToCart}
+            disabled={product.stock === 0 || cartAdding}
             className="w-full mt-5 bg-[#111111] text-white py-3 text-sm font-medium hover:bg-[#7A9E7E] transition-colors disabled:opacity-50"
           >
-            Add to Cart
+            {cartAdding ? 'Adding...' : 'Add to Cart'}
           </button>
 
           <div className="mt-6 divide-y divide-[#e5e5e5] border-t border-[#e5e5e5]">
